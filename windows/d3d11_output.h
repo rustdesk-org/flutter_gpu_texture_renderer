@@ -25,6 +25,7 @@ class D3D11Output  {
   D3D11Output() = delete;
   D3D11Output(const D3D11Output&) = delete;
   D3D11Output& operator=(const D3D11Output&) = delete;
+  bool EnsureTexture(ID3D11Texture2D *texture);
 
   void runDup();
  
@@ -38,8 +39,8 @@ class D3D11Output  {
   std::unique_ptr<flutter::TextureVariant> variant_ = nullptr;
   int64_t texture_id_ = 0;
   HANDLE shared_handle_ = nullptr;
-  int width_ = 2880;
-  int height_ = 1800;
+  UINT width_ = 0;
+  UINT height_ = 0;
 
   bool stopThread_ = false;
   std::unique_ptr<std::thread> dupThread_ = nullptr;
