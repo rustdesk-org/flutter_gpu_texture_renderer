@@ -18,40 +18,40 @@ namespace flutter_gpu_texture_renderer {
 // static
 void FlutterGpuTextureRendererPlugin::RegisterWithRegistrar(
     flutter::PluginRegistrarWindows *registrar) {
+  auto plugin = std::make_unique<FlutterGpuTextureRendererPlugin>(registrar);
+  registrar->AddPlugin(std::move(plugin));
+}
+
+FlutterGpuTextureRendererPlugin::FlutterGpuTextureRendererPlugin(flutter::PluginRegistrarWindows* registrar)
+: registrar_(registrar) {
   auto channel =
       std::make_unique<flutter::MethodChannel<flutter::EncodableValue>>(
           registrar->messenger(), "flutter_gpu_texture_renderer",
           &flutter::StandardMethodCodec::GetInstance());
-
-  auto plugin = std::make_unique<FlutterGpuTextureRendererPlugin>();
-
   channel->SetMethodCallHandler(
-      [plugin_pointer = plugin.get()](const auto &call, auto result) {
-        plugin_pointer->HandleMethodCall(call, std::move(result));
+      [&](const auto &call, auto result) {
+        this->HandleMethodCall(call, std::move(result));
       });
 
-  registrar->AddPlugin(std::move(plugin));
 }
-
-FlutterGpuTextureRendererPlugin::FlutterGpuTextureRendererPlugin() {}
 
 FlutterGpuTextureRendererPlugin::~FlutterGpuTextureRendererPlugin() {}
 
 void FlutterGpuTextureRendererPlugin::HandleMethodCall(
     const flutter::MethodCall<flutter::EncodableValue> &method_call,
     std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result) {
-  if (method_call.method_name().compare("getPlatformVersion") == 0) {
-    std::ostringstream version_stream;
-    version_stream << "Windows ";
-    if (IsWindows10OrGreater()) {
-      version_stream << "10+";
-    } else if (IsWindows8OrGreater()) {
-      version_stream << "8";
-    } else if (IsWindows7OrGreater()) {
-      version_stream << "7";
+  if (method_call.method_name().compare("create") == 0) {
+    try {
+      output_ = std::make_unique<D3D11Output>(
+        registrar_->texture_registrar(),
+        registrar_->GetView()->GetGraphicsAdapter());
+      result->Success(flutter::EncodableValue(output_->TextureId()));
+    } catch (std::exception& e) {
+      std::cerr << e.what() << std::endl;
+      result->Error("", e.what());
     }
-    result->Success(flutter::EncodableValue(version_stream.str()));
-  } else {
+  } 
+  else {
     result->NotImplemented();
   }
 }

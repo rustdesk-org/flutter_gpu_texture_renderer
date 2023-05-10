@@ -3,8 +3,11 @@
 
 #include <flutter/method_channel.h>
 #include <flutter/plugin_registrar_windows.h>
-
 #include <memory>
+#include <wrl/client.h>
+#include "d3d11_output.h"
+
+using namespace Microsoft::WRL;
 
 namespace flutter_gpu_texture_renderer {
 
@@ -12,7 +15,7 @@ class FlutterGpuTextureRendererPlugin : public flutter::Plugin {
  public:
   static void RegisterWithRegistrar(flutter::PluginRegistrarWindows *registrar);
 
-  FlutterGpuTextureRendererPlugin();
+  FlutterGpuTextureRendererPlugin(flutter::PluginRegistrarWindows* registrar);
 
   virtual ~FlutterGpuTextureRendererPlugin();
 
@@ -25,6 +28,11 @@ class FlutterGpuTextureRendererPlugin : public flutter::Plugin {
   void HandleMethodCall(
       const flutter::MethodCall<flutter::EncodableValue> &method_call,
       std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result);
+ 
+ private:
+    flutter::PluginRegistrarWindows* registrar_ = nullptr;
+    HWND hwnd_ = nullptr;
+    std::unique_ptr<D3D11Output> output_= nullptr;   
 };
 
 }  // namespace flutter_gpu_texture_renderer
