@@ -42,14 +42,10 @@ class _MyAppState extends State<MyApp> {
         appBar: AppBar(
           title: const Text('Plugin example app'),
         ),
-        body: Container(
-          decoration:
-              BoxDecoration(border: Border.all(color: Colors.black, width: 5)),
-          child: Center(
-            child: _textureId != null
-                ? Texture(textureId: _textureId!)
-                : Text("_textureId is null"),
-          ),
+        body: Center(
+          child: _textureId != null
+              ? Texture(textureId: _textureId!)
+              : Text("_textureId is null"),
         ),
       ),
     );

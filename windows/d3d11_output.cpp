@@ -1,4 +1,3 @@
-#include <chrono>
 #include "d3d11_output.h"
 
 #include "DDAImpl.h"
@@ -25,7 +24,7 @@ D3D11Output::D3D11Output(flutter::TextureRegistrar *texture_registrar,IDXGIAdapt
   if (adapter_) {
     DXGI_ADAPTER_DESC desc;
     if (SUCCEEDED(adapter_->GetDesc(&desc))) {
-      std::wcerr << "Graphics adapter: " << desc.Description << std::endl;
+      std::wcout << "Graphics adapter: " << desc.Description << std::endl;
     }
   }
   auto creationFlags = 0;
@@ -45,7 +44,6 @@ D3D11Output::D3D11Output(flutter::TextureRegistrar *texture_registrar,IDXGIAdapt
   variant_ = std::make_unique<flutter::TextureVariant>(
     flutter::GpuSurfaceTexture(kFlutterDesktopGpuSurfaceTypeDxgiSharedHandle,
     [&](size_t width, size_t height) {
-      std::cout << "ObtainDescriptorCallback: (" << width << ", " << height << ")" << std::endl; 
       return surface_desc_.get();
     }));
   
@@ -65,9 +63,17 @@ bool D3D11Output::SetTexture(ID3D11Texture2D *texture) {
   std::cout << "SetTexture" << std::endl;
   if (!texture) return false;
 
+  if (!allowInput_) {
+    std::cout << "not allow input" << std::endl;
+    return false;
+  }
+
   ComPtr<ID3D11Texture2D> tex = texture;
   if (!EnsureTexture(tex.Get())) return false;
   ctx_->CopyResource(tex_.Get(), tex.Get());
+  ctx_->Flush();
+
+  allowInput_ = false;
 
   return Present();
 }
@@ -75,7 +81,7 @@ bool D3D11Output::SetTexture(ID3D11Texture2D *texture) {
 bool D3D11Output::EnsureTexture(ID3D11Texture2D *texture) {
   D3D11_TEXTURE2D_DESC newDesc;
   texture->GetDesc(&newDesc);
-  if (!(!tex_ || !shared_handle_ || newDesc.Width != width_ || newDesc.Height != height_)) return true;
+  if (!(!tex_ || newDesc.Width != width_ || newDesc.Height != height_)) return true;
 
   D3D11_TEXTURE2D_DESC desc;
   ZeroMemory(&desc, sizeof(desc));
@@ -106,15 +112,19 @@ bool D3D11Output::EnsureTexture(ID3D11Texture2D *texture) {
 
   ComPtr<IDXGIResource> res;
   MS_THROW(tex_.As(&res));
-  MS_THROW(res->GetSharedHandle(&shared_handle_));
+  HANDLE shared_handle = nullptr;
+  MS_THROW(res->GetSharedHandle(&shared_handle));
   
   surface_desc_->struct_size = sizeof(FlutterDesktopGpuSurfaceDescriptor);
-  surface_desc_->handle = shared_handle_;;
+  surface_desc_->handle = shared_handle;;
   surface_desc_->width = surface_desc_->visible_width = desc.Width;
   surface_desc_->height = surface_desc_->visible_height = desc.Height;
   surface_desc_->format = kFlutterDesktopPixelFormatBGRA8888;
-  surface_desc_->release_context = nullptr;
-  surface_desc_->release_callback = [](void* release_context) {};
+  surface_desc_->release_context = this;
+  surface_desc_->release_callback = [](void* release_context) {
+    D3D11Output *self = (D3D11Output*) release_context;
+    self->allowInput_ = true;
+  };
 
   width_ = newDesc.Width;
   height_ = newDesc.Height;
@@ -138,8 +148,7 @@ void D3D11Output::runDup() {
             std::cerr << "SetTexture failed" << std::endl;
           }
     } else {
-      dda.release();
-      dda = nullptr;
+      dda.reset();
       dda = std::make_unique<DDAImpl>(dev_.Get(), ctx_.Get());
       dda->Init();
       std::this_thread::sleep_for(std::chrono::seconds(1));

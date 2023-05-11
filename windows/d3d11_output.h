@@ -38,12 +38,12 @@ class D3D11Output  {
   std::unique_ptr<FlutterDesktopGpuSurfaceDescriptor> surface_desc_ = nullptr;
   std::unique_ptr<flutter::TextureVariant> variant_ = nullptr;
   int64_t texture_id_ = 0;
-  HANDLE shared_handle_ = nullptr;
   UINT width_ = 0;
   UINT height_ = 0;
 
   bool stopThread_ = false;
   std::unique_ptr<std::thread> dupThread_ = nullptr;
+  bool allowInput_ = true;
 };
 
 }  // namespace flutter_gpu_texture_renderer
