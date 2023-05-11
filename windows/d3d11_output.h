@@ -8,6 +8,7 @@
 #include <d3d11.h>
 #include <dxgi.h>
 #include <thread>
+#include <atomic>
 
 using namespace Microsoft::WRL;
 
@@ -41,9 +42,9 @@ class D3D11Output  {
   UINT width_ = 0;
   UINT height_ = 0;
 
-  bool stopThread_ = false;
+  std::atomic<bool> stopThread_ = false;
   std::unique_ptr<std::thread> dupThread_ = nullptr;
-  bool allowInput_ = true;
+  std::atomic<bool> allowInput_ = true;
 };
 
 }  // namespace flutter_gpu_texture_renderer
