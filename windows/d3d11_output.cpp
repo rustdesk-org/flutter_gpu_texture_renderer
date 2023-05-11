@@ -1,5 +1,4 @@
 #include "d3d11_output.h"
-
 #include "DDAImpl.h"
 
 #pragma comment(lib, "dxgi.lib")
@@ -27,7 +26,10 @@ D3D11Output::D3D11Output(flutter::TextureRegistrar *texture_registrar,IDXGIAdapt
       std::wcout << "Graphics adapter: " << desc.Description << std::endl;
     }
   }
-  auto creationFlags = 0;
+  UINT creationFlags = D3D11_CREATE_DEVICE_BGRA_SUPPORT;
+#ifdef _DEBUG
+  creationFlags |= D3D11_CREATE_DEVICE_DEBUG;
+#endif
   MS_THROW(D3D11CreateDevice(
     adapter_.Get(),
     (adapter_ ? D3D_DRIVER_TYPE_UNKNOWN : D3D_DRIVER_TYPE_HARDWARE),
@@ -57,22 +59,24 @@ D3D11Output::~D3D11Output() {
     stopThread_ = true;
     dupThread_->join();
   }
+#ifdef _DEBUG
+  if (dev_) {
+    ComPtr<ID3D11Debug> debug = nullptr;
+    if (SUCCEEDED(dev_.As(&debug))) {
+      debug->ReportLiveDeviceObjects(D3D11_RLDO_DETAIL);
+    }
+  }
+#endif
 }
 
 bool D3D11Output::SetTexture(ID3D11Texture2D *texture) {
-  std::cout << "SetTexture" << std::endl;
   if (!texture) return false;
-
-  if (!allowInput_) {
-    std::cout << "not allow input" << std::endl;
-    return false;
-  }
+  if (!allowInput_) return false;
 
   ComPtr<ID3D11Texture2D> tex = texture;
   if (!EnsureTexture(tex.Get())) return false;
   ctx_->CopyResource(tex_.Get(), tex.Get());
   ctx_->Flush();
-
   allowInput_ = false;
 
   return Present();
@@ -144,9 +148,7 @@ void D3D11Output::runDup() {
   while (!stopThread_) {
     ComPtr<ID3D11Texture2D> texture = nullptr;
     if(SUCCEEDED(dda->GetCapturedFrame(texture.ReleaseAndGetAddressOf(), 100))) {
-          if (!SetTexture(texture.Get())) {
-            std::cerr << "SetTexture failed" << std::endl;
-          }
+          SetTexture(texture.Get());
     } else {
       dda.reset();
       dda = std::make_unique<DDAImpl>(dev_.Get(), ctx_.Get());
