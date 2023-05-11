@@ -27,8 +27,6 @@ class D3D11Output  {
   D3D11Output(const D3D11Output&) = delete;
   D3D11Output& operator=(const D3D11Output&) = delete;
   bool EnsureTexture(ID3D11Texture2D *texture);
-
-  void runDup();
  
  private:
   flutter::TextureRegistrar *texture_registrar_ = nullptr;
@@ -41,10 +39,7 @@ class D3D11Output  {
   int64_t texture_id_ = 0;
   UINT width_ = 0;
   UINT height_ = 0;
-
-  std::atomic<bool> stopThread_ = false;
-  std::unique_ptr<std::thread> dupThread_ = nullptr;
-  std::atomic<bool> allowInput_ = true;
+  std::atomic_bool allowInput_ = true;
 };
 
 }  // namespace flutter_gpu_texture_renderer

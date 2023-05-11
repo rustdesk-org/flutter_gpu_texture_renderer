@@ -1,9 +1,47 @@
 #include <flutter/dart_project.h>
 #include <flutter/flutter_view_controller.h>
 #include <windows.h>
+#include <thread>
+#include <chrono>
+#include <wrl/client.h>
+#include <d3d11.h>
+#include <dxgi.h>
 
 #include "flutter_window.h"
 #include "utils.h"
+#include "DDAImpl.h"
+
+using namespace Microsoft::WRL;
+
+typedef void (*DuplicateCallback)(void* texture);
+
+static DuplicateCallback duplicateCallback = nullptr;
+static ComPtr<ID3D11Device> device = nullptr;
+static ComPtr<ID3D11DeviceContext> deviceCtx = nullptr;
+
+namespace {
+void duplicateThread(const std::atomic_bool &stop) {
+  std::unique_ptr<DDAImpl> dda = nullptr;
+
+  while (!stop) {
+    if (!duplicateCallback) {
+      std::this_thread::sleep_for(std::chrono::seconds(1));
+      continue;
+    }
+    if (!dda) {
+      dda = std::make_unique<DDAImpl>(device.Get(), deviceCtx.Get());
+      dda->Init();
+      std::this_thread::sleep_for(std::chrono::seconds(1));
+    }
+    ComPtr<ID3D11Texture2D> texture = nullptr;
+    if(SUCCEEDED(dda->GetCapturedFrame(texture.ReleaseAndGetAddressOf(), 100))) {
+          duplicateCallback(texture.Get());
+    } else {
+      dda.reset();
+    }
+  }
+}
+}
 
 int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
                       _In_ wchar_t *command_line, _In_ int show_command) {
@@ -32,11 +70,17 @@ int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
   }
   window.SetQuitOnClose(true);
 
+  std::atomic_bool stop = false;
+  std::thread duplicate(duplicateThread, &stop);
+
   ::MSG msg;
   while (::GetMessage(&msg, nullptr, 0, 0)) {
     ::TranslateMessage(&msg);
     ::DispatchMessage(&msg);
   }
+
+  stop = true;
+  duplicate.join();
 
   ::CoUninitialize();
   return EXIT_SUCCESS;

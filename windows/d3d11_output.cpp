@@ -1,5 +1,4 @@
 #include "d3d11_output.h"
-#include "DDAImpl.h"
 
 #pragma comment(lib, "dxgi.lib")
 #pragma comment(lib, "d3d11.lib")
@@ -50,15 +49,9 @@ D3D11Output::D3D11Output(flutter::TextureRegistrar *texture_registrar,IDXGIAdapt
     }));
   
   texture_id_ = texture_registrar_->RegisterTexture(variant_.get());
-
-  dupThread_ = std::make_unique<std::thread>(&D3D11Output::runDup, this);
 }
 
 D3D11Output::~D3D11Output() {
-  if (dupThread_) {
-    stopThread_ = true;
-    dupThread_->join();
-  }
 #ifdef _DEBUG
   if (dev_) {
     ComPtr<ID3D11Debug> debug = nullptr;
@@ -138,24 +131,6 @@ bool D3D11Output::EnsureTexture(ID3D11Texture2D *texture) {
 
 bool D3D11Output::Present() {
   return texture_registrar_->MarkTextureFrameAvailable(texture_id_);
-}
-
-void D3D11Output::runDup() {
-  
-  std::unique_ptr<DDAImpl> dda = std::make_unique<DDAImpl>(dev_.Get(), ctx_.Get());
-  dda->Init();
-
-  while (!stopThread_) {
-    ComPtr<ID3D11Texture2D> texture = nullptr;
-    if(SUCCEEDED(dda->GetCapturedFrame(texture.ReleaseAndGetAddressOf(), 100))) {
-          SetTexture(texture.Get());
-    } else {
-      dda.reset();
-      dda = std::make_unique<DDAImpl>(dev_.Get(), ctx_.Get());
-      dda->Init();
-      std::this_thread::sleep_for(std::chrono::seconds(1));
-    }
-  }
 }
 
 }

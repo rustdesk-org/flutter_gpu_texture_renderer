@@ -18,8 +18,6 @@ list(APPEND PLUGIN_SOURCES
   "flutter_gpu_texture_renderer_plugin.h"
   "d3d11_output.cpp"
   "d3d11_output.h"
-  "DDAImpl.cpp"
-  "DDAImpl.h"
 )
 
 # Define the plugin library target. Its name must not be changed (see comment

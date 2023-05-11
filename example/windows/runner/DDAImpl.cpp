@@ -29,6 +29,9 @@
 #include "DDAImpl.h"
 #include <iomanip>
 
+#pragma comment(lib, "dxgi.lib")
+#pragma comment(lib, "d3d11.lib")
+
 #pragma once
 #pragma warning(disable:4996)
 #pragma warning(disable:4838)
