@@ -215,13 +215,13 @@ void duplicateThread() {
 
   while (!stop) {
     if (!duplicateCallback) {
-      std::this_thread::sleep_for(std::chrono::seconds(1));
+      std::this_thread::sleep_for(std::chrono::milliseconds(100));
       continue;
     }
     if (!dda) {
       dda = std::make_unique<DDAImpl>(device.Get(), deviceCtx.Get());
       dda->Init();
-      std::this_thread::sleep_for(std::chrono::seconds(1));
+      std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
     ComPtr<ID3D11Texture2D> texture = nullptr;
     if(SUCCEEDED(dda->GetCapturedFrame(texture.ReleaseAndGetAddressOf(), 100))) {
