@@ -49,8 +49,10 @@ class _MyAppState extends State<MyApp> with WindowListener {
     try {
       _textureId = await _flutterGpuTextureRendererPlugin.registerTexture();
       if (_textureId != null) {
-        final device = await _flutterGpuTextureRendererPlugin.device();
-        final output = await _flutterGpuTextureRendererPlugin.output();
+        final device =
+            await _flutterGpuTextureRendererPlugin.device(_textureId!);
+        final output =
+            await _flutterGpuTextureRendererPlugin.output(_textureId!);
         debugPrint("textureId: $_textureId, output: $output, device: $device");
         setState(() {});
 

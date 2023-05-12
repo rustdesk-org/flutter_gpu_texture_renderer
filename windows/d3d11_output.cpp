@@ -79,7 +79,7 @@ bool D3D11Output::SetTexture(ID3D11Texture2D *texture) {
 bool D3D11Output::EnsureTexture(ID3D11Texture2D *texture) {
   D3D11_TEXTURE2D_DESC newDesc;
   texture->GetDesc(&newDesc);
-  if (!(!tex_ || newDesc.Width != width_ || newDesc.Height != height_)) return true;
+  if (tex_ && newDesc.Width == width_ && newDesc.Height == height_) return true;
 
   D3D11_TEXTURE2D_DESC desc;
   ZeroMemory(&desc, sizeof(desc));

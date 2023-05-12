@@ -30,33 +30,50 @@ FlutterGpuTextureRendererPlugin::FlutterGpuTextureRendererPlugin(flutter::Plugin
 
 }
 
-FlutterGpuTextureRendererPlugin::~FlutterGpuTextureRendererPlugin() {}
+FlutterGpuTextureRendererPlugin::~FlutterGpuTextureRendererPlugin() {
+  for (auto& output: outputs_) output.reset();
+  outputs_.clear();
+}
 
 void FlutterGpuTextureRendererPlugin::HandleMethodCall(
     const flutter::MethodCall<flutter::EncodableValue> &method_call,
     std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result) {
   try {
     if (method_call.method_name().compare("registerTexture") == 0) {
-        output_ = std::make_unique<D3D11Output>(
-          registrar_->texture_registrar(),
-          registrar_->GetView()->GetGraphicsAdapter());
-        return result->Success(flutter::EncodableValue(output_->TextureId()));
+      auto output = std::make_unique<D3D11Output>(
+        registrar_->texture_registrar(),
+        registrar_->GetView()->GetGraphicsAdapter());
+      auto id = output->TextureId();
+      outputs_.push_back(std::move(output));
+      return result->Success(flutter::EncodableValue(id));
     } else if (method_call.method_name().compare("unregisterTexture") == 0) {
-        output_.reset();
-        return result->Success();
-    } else if (method_call.method_name().compare("device") == 0) { 
-      if (output_) {
-        return result->Success(flutter::EncodableValue((int64_t)output_->Device()));
-      }
-    } else if (method_call.method_name().compare("output") == 0) { 
-      if (output_) {
-        return result->Success(flutter::EncodableValue((int64_t)output_.get()));
-      }
-    } else if (method_call.method_name().compare("setTexture") == 0) { 
-      if (output_) {
         auto args = std::get<flutter::EncodableMap>(*method_call.arguments());
-        auto texture = std::get<int64_t>(args.at(flutter::EncodableValue("texture")));
-        if (output_->SetTexture(((ID3D11Texture2D*)texture))) return result->Success();
+        auto id = std::get<int64_t>(args.at(flutter::EncodableValue("id")));
+        auto new_end = std::remove_if(outputs_.begin(), outputs_.end(),
+          [id](const std::unique_ptr<D3D11Output>& output) {
+            return output->TextureId() == id;
+        });
+        outputs_.erase(new_end, outputs_.end());
+        return result->Success();
+    } else if (method_call.method_name().compare("device") == 0) {
+      auto args = std::get<flutter::EncodableMap>(*method_call.arguments());
+      auto id = std::get<int64_t>(args.at(flutter::EncodableValue("id")));
+      auto it = std::find_if(outputs_.begin(), outputs_.end(),
+        [id] (const std::unique_ptr<D3D11Output>& output) {
+          return output->TextureId() == id;
+      });
+      if (it != outputs_.end()) {
+        return result->Success(flutter::EncodableValue((int64_t)(*it)->Device()));
+      }
+    } else if (method_call.method_name().compare("output") == 0) {
+      auto args = std::get<flutter::EncodableMap>(*method_call.arguments());
+      auto id = std::get<int64_t>(args.at(flutter::EncodableValue("id")));
+      auto it = std::find_if(outputs_.begin(), outputs_.end(),
+        [id] (const std::unique_ptr<D3D11Output>& output) {
+          return output->TextureId() == id;
+      });
+      if (it != outputs_.end()) {
+        return result->Success(flutter::EncodableValue((int64_t)(*it).get()));
       }
     } else {
       return result->NotImplemented();

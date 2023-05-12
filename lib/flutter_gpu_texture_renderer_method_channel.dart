@@ -16,17 +16,18 @@ class MethodChannelFlutterGpuTextureRenderer
   }
 
   @override
-  Future<int?> unregisterTexture() async {
-    return await methodChannel.invokeMethod<int?>('unregisterTexture');
+  Future<int?> unregisterTexture(int id) async {
+    return await methodChannel
+        .invokeMethod<int?>('unregisterTexture', {"id": id});
   }
 
   @override
-  Future<int?> output() async {
-    return await methodChannel.invokeMethod<int?>('output');
+  Future<int?> output(int id) async {
+    return await methodChannel.invokeMethod<int?>('output', {"id": id});
   }
 
   @override
-  Future<int?> device() async {
-    return await methodChannel.invokeMethod<int?>('device');
+  Future<int?> device(int id) async {
+    return await methodChannel.invokeMethod<int?>('device', {"id": id});
   }
 }

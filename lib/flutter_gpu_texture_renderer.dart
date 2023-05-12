@@ -5,15 +5,15 @@ class FlutterGpuTextureRenderer {
     return FlutterGpuTextureRendererPlatform.instance.registerTexture();
   }
 
-  Future<int?> unregisterTexture() {
-    return FlutterGpuTextureRendererPlatform.instance.unregisterTexture();
+  Future<int?> unregisterTexture(int id) {
+    return FlutterGpuTextureRendererPlatform.instance.unregisterTexture(id);
   }
 
-  Future<int?> output() {
-    return FlutterGpuTextureRendererPlatform.instance.output();
+  Future<int?> output(int id) {
+    return FlutterGpuTextureRendererPlatform.instance.output(id);
   }
 
-  Future<int?> device() {
-    return FlutterGpuTextureRendererPlatform.instance.device();
+  Future<int?> device(int id) {
+    return FlutterGpuTextureRendererPlatform.instance.device(id);
   }
 }

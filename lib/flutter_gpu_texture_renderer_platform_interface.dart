@@ -28,15 +28,15 @@ abstract class FlutterGpuTextureRendererPlatform extends PlatformInterface {
     throw UnimplementedError('registerTexture() has not been implemented.');
   }
 
-  Future<int?> unregisterTexture() {
+  Future<int?> unregisterTexture(int id) {
     throw UnimplementedError('unregisterTexture() has not been implemented.');
   }
 
-  Future<int?> output() {
+  Future<int?> output(int id) {
     throw UnimplementedError('output() has not been implemented.');
   }
 
-  Future<int?> device() {
+  Future<int?> device(int id) {
     throw UnimplementedError('device() has not been implemented.');
   }
 }

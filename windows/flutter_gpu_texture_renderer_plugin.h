@@ -32,7 +32,7 @@ class FlutterGpuTextureRendererPlugin : public flutter::Plugin {
  private:
     flutter::PluginRegistrarWindows* registrar_ = nullptr;
     HWND hwnd_ = nullptr;
-    std::unique_ptr<D3D11Output> output_= nullptr;   
+    std::vector<std::unique_ptr<D3D11Output>> outputs_;   
 };
 
 }  // namespace flutter_gpu_texture_renderer
