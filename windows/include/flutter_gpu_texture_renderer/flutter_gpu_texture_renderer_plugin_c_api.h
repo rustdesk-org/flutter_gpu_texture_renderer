@@ -16,6 +16,8 @@ extern "C" {
 FLUTTER_PLUGIN_EXPORT void FlutterGpuTextureRendererPluginCApiRegisterWithRegistrar(
     FlutterDesktopPluginRegistrarRef registrar);
 
+FLUTTER_PLUGIN_EXPORT void FlutterGpuTextureRendererPluginCApiSetTexture(void *output, void *texture);
+
 #if defined(__cplusplus)
 }  // extern "C"
 #endif

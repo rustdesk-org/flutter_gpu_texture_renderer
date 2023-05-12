@@ -52,6 +52,7 @@ D3D11Output::D3D11Output(flutter::TextureRegistrar *texture_registrar,IDXGIAdapt
 }
 
 D3D11Output::~D3D11Output() {
+  if (texture_id_) texture_registrar_->UnregisterTexture(texture_id_);
 #ifdef _DEBUG
   if (dev_) {
     ComPtr<ID3D11Debug> debug = nullptr;

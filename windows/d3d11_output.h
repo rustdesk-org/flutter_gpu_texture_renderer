@@ -19,6 +19,7 @@ class D3D11Output  {
   D3D11Output(flutter::TextureRegistrar *texture_registrar, IDXGIAdapter *adapter);
   virtual ~D3D11Output();
   int64_t TextureId() { return texture_id_; }
+  ID3D11Device* Device() { return dev_.Get(); }
   bool SetTexture(ID3D11Texture2D *texture);
   bool Present();
 

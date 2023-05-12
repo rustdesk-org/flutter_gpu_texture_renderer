@@ -11,7 +11,22 @@ class MethodChannelFlutterGpuTextureRenderer
   final methodChannel = const MethodChannel('flutter_gpu_texture_renderer');
 
   @override
-  Future<int?> create() async {
-    return await methodChannel.invokeMethod<int?>('create');
+  Future<int?> registerTexture() async {
+    return await methodChannel.invokeMethod<int?>('registerTexture');
+  }
+
+  @override
+  Future<int?> unregisterTexture() async {
+    return await methodChannel.invokeMethod<int?>('unregisterTexture');
+  }
+
+  @override
+  Future<int?> output() async {
+    return await methodChannel.invokeMethod<int?>('output');
+  }
+
+  @override
+  Future<int?> device() async {
+    return await methodChannel.invokeMethod<int?>('device');
   }
 }

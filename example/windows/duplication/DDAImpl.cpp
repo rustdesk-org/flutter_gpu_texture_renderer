@@ -192,3 +192,60 @@ int DDAImpl::Cleanup()
 
     return 0;
 }
+
+#include <thread>
+#include <wrl/client.h>
+#include <d3d11.h>
+#include <dxgi.h>
+
+using namespace Microsoft::WRL;
+
+typedef void (*DuplicateCallback)(void *output, void* texture);
+
+static DuplicateCallback duplicateCallback = nullptr;
+static void* output;
+static ComPtr<ID3D11Device> device = nullptr;
+static ComPtr<ID3D11DeviceContext> deviceCtx = nullptr;
+static std::atomic_bool stop = false;
+static std::unique_ptr<std::thread> duplicateThreadHandle;
+
+namespace {
+void duplicateThread() {
+  std::unique_ptr<DDAImpl> dda = nullptr;
+
+  while (!stop) {
+    if (!duplicateCallback) {
+      std::this_thread::sleep_for(std::chrono::seconds(1));
+      continue;
+    }
+    if (!dda) {
+      dda = std::make_unique<DDAImpl>(device.Get(), deviceCtx.Get());
+      dda->Init();
+      std::this_thread::sleep_for(std::chrono::seconds(1));
+    }
+    ComPtr<ID3D11Texture2D> texture = nullptr;
+    if(SUCCEEDED(dda->GetCapturedFrame(texture.ReleaseAndGetAddressOf(), 100))) {
+          duplicateCallback(output, texture.Get());
+    } else {
+      dda.reset();
+    }
+  }
+}
+
+extern "C" __declspec(dllexport) void SetAndStartDuplicateThread(void *pOutput, void *pDevice) {
+    output = pOutput;
+    device = (ID3D11Device*)pDevice;
+    device->GetImmediateContext(deviceCtx.ReleaseAndGetAddressOf());
+
+    HMODULE hDll = LoadLibraryA("flutter_gpu_texture_renderer_plugin.dll");
+    duplicateCallback = reinterpret_cast<DuplicateCallback>(GetProcAddress(hDll, "FlutterGpuTextureRendererPluginCApiSetTexture"));
+
+    duplicateThreadHandle = std::make_unique<std::thread>(duplicateThread);
+}
+
+extern "C" __declspec(dllexport) void StopDuplicateThread() {
+  stop = true;
+  duplicateThreadHandle->join();
+  duplicateThreadHandle.reset();
+}
+}
