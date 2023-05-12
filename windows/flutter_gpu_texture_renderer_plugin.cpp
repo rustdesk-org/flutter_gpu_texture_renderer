@@ -31,6 +31,7 @@ FlutterGpuTextureRendererPlugin::FlutterGpuTextureRendererPlugin(flutter::Plugin
 }
 
 FlutterGpuTextureRendererPlugin::~FlutterGpuTextureRendererPlugin() {
+  std::lock_guard<std::mutex> lock(mutex_);
   for (auto& output: outputs_) output.reset();
   outputs_.clear();
 }
@@ -38,6 +39,7 @@ FlutterGpuTextureRendererPlugin::~FlutterGpuTextureRendererPlugin() {
 void FlutterGpuTextureRendererPlugin::HandleMethodCall(
     const flutter::MethodCall<flutter::EncodableValue> &method_call,
     std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result) {
+  std::lock_guard<std::mutex> lock(mutex_);
   try {
     if (method_call.method_name().compare("registerTexture") == 0) {
       auto output = std::make_unique<D3D11Output>(

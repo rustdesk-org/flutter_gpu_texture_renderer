@@ -4,6 +4,7 @@
 #include <flutter/method_channel.h>
 #include <flutter/plugin_registrar_windows.h>
 #include <memory>
+#include <mutex>
 #include <wrl/client.h>
 #include "d3d11_output.h"
 
@@ -32,7 +33,8 @@ class FlutterGpuTextureRendererPlugin : public flutter::Plugin {
  private:
     flutter::PluginRegistrarWindows* registrar_ = nullptr;
     HWND hwnd_ = nullptr;
-    std::vector<std::unique_ptr<D3D11Output>> outputs_;   
+    std::vector<std::unique_ptr<D3D11Output>> outputs_;
+    std::mutex mutex_;   
 };
 
 }  // namespace flutter_gpu_texture_renderer
