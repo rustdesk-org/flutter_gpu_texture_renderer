@@ -3,8 +3,12 @@
 
 typedef void (*DuplicateCallback)(void *output, void* texture);
 
-void SetAndStartDuplicateThread(void *pOutput, void *pDevice) {};
+void StartDuplicateThread(void *pDevice) {};
 
 void StopDuplicateThread() {};
+
+void AddOutput(void *output) {};
+
+void RemoveOutput(void *output) {};
 
 #endif

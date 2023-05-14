@@ -16,30 +16,10 @@
 
 namespace flutter_gpu_texture_renderer {
 
-D3D11Output::D3D11Output(flutter::TextureRegistrar *texture_registrar,IDXGIAdapter *adapter) :
+D3D11Output::D3D11Output(flutter::TextureRegistrar *texture_registrar, ID3D11Device *device) :
   texture_registrar_(texture_registrar) {
-  adapter_ = adapter;
-  if (adapter_) {
-    DXGI_ADAPTER_DESC desc;
-    if (SUCCEEDED(adapter_->GetDesc(&desc))) {
-      std::wcout << "Graphics adapter: " << desc.Description << std::endl;
-    }
-  }
-  UINT creationFlags = D3D11_CREATE_DEVICE_BGRA_SUPPORT;
-#ifdef _DEBUG
-  creationFlags |= D3D11_CREATE_DEVICE_DEBUG;
-#endif
-  MS_THROW(D3D11CreateDevice(
-    adapter_.Get(),
-    (adapter_ ? D3D_DRIVER_TYPE_UNKNOWN : D3D_DRIVER_TYPE_HARDWARE),
-    NULL, creationFlags, NULL, 0, D3D11_SDK_VERSION,
-    dev_.ReleaseAndGetAddressOf(), NULL,
-    ctx_.ReleaseAndGetAddressOf()));
-
-  ComPtr<ID3D10Multithread> mt;
-  MS_THROW(dev_.As(&mt));
-  mt->SetMultithreadProtected(TRUE);
-
+  dev_ = device;
+  dev_->GetImmediateContext(ctx_.ReleaseAndGetAddressOf());
   surface_desc_ = std::make_unique<FlutterDesktopGpuSurfaceDescriptor>();
 
   variant_ = std::make_unique<flutter::TextureVariant>(

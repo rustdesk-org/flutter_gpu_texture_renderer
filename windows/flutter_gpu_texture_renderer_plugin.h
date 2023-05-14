@@ -29,10 +29,13 @@ class FlutterGpuTextureRendererPlugin : public flutter::Plugin {
   void HandleMethodCall(
       const flutter::MethodCall<flutter::EncodableValue> &method_call,
       std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result);
+  
+  bool CreateDevice(IDXGIAdapter *adapter);
  
  private:
     flutter::PluginRegistrarWindows* registrar_ = nullptr;
     HWND hwnd_ = nullptr;
+    ComPtr<ID3D11Device> dev_ = nullptr;
     std::vector<std::unique_ptr<D3D11Output>> outputs_;
     std::mutex mutex_;   
 };

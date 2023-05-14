@@ -42,12 +42,12 @@ void FlutterGpuTextureRendererPlugin::HandleMethodCall(
   std::lock_guard<std::mutex> lock(mutex_);
   try {
     if (method_call.method_name().compare("registerTexture") == 0) {
-      auto output = std::make_unique<D3D11Output>(
-        registrar_->texture_registrar(),
-        registrar_->GetView()->GetGraphicsAdapter());
-      auto id = output->TextureId();
-      outputs_.push_back(std::move(output));
-      return result->Success(flutter::EncodableValue(id));
+      if (CreateDevice(registrar_->GetView()->GetGraphicsAdapter())) {
+        auto output = std::make_unique<D3D11Output>(registrar_->texture_registrar(), dev_.Get());
+        auto id = output->TextureId();
+        outputs_.push_back(std::move(output));
+        return result->Success(flutter::EncodableValue(id));
+      }
     } else if (method_call.method_name().compare("unregisterTexture") == 0) {
         auto args = std::get<flutter::EncodableMap>(*method_call.arguments());
         auto id = std::get<int64_t>(args.at(flutter::EncodableValue("id")));
@@ -86,6 +86,42 @@ void FlutterGpuTextureRendererPlugin::HandleMethodCall(
   }
 
   return result->Error("", "");
+}
+
+bool FlutterGpuTextureRendererPlugin::CreateDevice(IDXGIAdapter *adapter) {
+  if (dev_) return true;
+  if (adapter) {
+    DXGI_ADAPTER_DESC desc;
+    if (SUCCEEDED(adapter->GetDesc(&desc))) {
+      std::wcout << "Graphics adapter: " << desc.Description << std::endl;
+    }
+  }
+  UINT creationFlags = D3D11_CREATE_DEVICE_BGRA_SUPPORT;
+#ifdef _DEBUG
+  creationFlags |= D3D11_CREATE_DEVICE_DEBUG;
+#endif
+  auto hr = D3D11CreateDevice(
+    adapter,
+    (adapter ? D3D_DRIVER_TYPE_UNKNOWN : D3D_DRIVER_TYPE_HARDWARE),
+    NULL, creationFlags, NULL, 0, D3D11_SDK_VERSION,
+    dev_.ReleaseAndGetAddressOf(), NULL,
+    NULL);
+  if (FAILED(hr)) {
+    std::cerr << "D3D11CreateDevice failed, hr = " << std::hex << hr << std::dec << std::endl;
+    return false;
+  }
+
+  ComPtr<ID3D10Multithread> mt;
+  hr = dev_.As(&mt);
+  if (FAILED(hr)) {
+    std::cerr << "Get ID3D10Multithread failed, hr = " << std::hex << hr << std::dec << std::endl;
+    return false;
+  }
+  if (!mt->SetMultithreadProtected(TRUE)) {
+    std::cerr << "SetMultithreadProtected failed" << std::endl;
+    // return false;
+  }
+  return true;
 }
 
 }  // namespace flutter_gpu_texture_renderer

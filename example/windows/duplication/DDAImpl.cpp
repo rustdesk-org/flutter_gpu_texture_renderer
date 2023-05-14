@@ -197,17 +197,19 @@ int DDAImpl::Cleanup()
 #include <wrl/client.h>
 #include <d3d11.h>
 #include <dxgi.h>
+#include <mutex>
 
 using namespace Microsoft::WRL;
 
 typedef void (*DuplicateCallback)(void *output, void* texture);
 
 static DuplicateCallback duplicateCallback = nullptr;
-static void* output;
+static std::vector<void*> outputs;
 static ComPtr<ID3D11Device> device = nullptr;
 static ComPtr<ID3D11DeviceContext> deviceCtx = nullptr;
 static std::atomic_bool stop = false;
 static std::unique_ptr<std::thread> duplicateThreadHandle;
+static std::mutex mutex;
 
 namespace {
 void duplicateThread() {
@@ -225,15 +227,19 @@ void duplicateThread() {
     }
     ComPtr<ID3D11Texture2D> texture = nullptr;
     if(SUCCEEDED(dda->GetCapturedFrame(texture.ReleaseAndGetAddressOf(), 100))) {
-          duplicateCallback(output, texture.Get());
+      std::lock_guard<std::mutex> lock(mutex);
+      for (auto output: outputs) {
+        duplicateCallback(output, texture.Get());
+      }
     } else {
       dda.reset();
     }
   }
 }
 
-extern "C" __declspec(dllexport) void SetAndStartDuplicateThread(void *pOutput, void *pDevice) {
-    output = pOutput;
+extern "C" __declspec(dllexport) void StartDuplicateThread(void *pDevice) {
+    std::lock_guard<std::mutex> lock(mutex);
+    if (duplicateThreadHandle) return;
     device = (ID3D11Device*)pDevice;
     device->GetImmediateContext(deviceCtx.ReleaseAndGetAddressOf());
 
@@ -248,4 +254,18 @@ extern "C" __declspec(dllexport) void StopDuplicateThread() {
   duplicateThreadHandle->join();
   duplicateThreadHandle.reset();
 }
+
+extern "C" __declspec(dllexport) void AddOutput(void *output) {
+    std::lock_guard<std::mutex> lock(mutex);
+    outputs.push_back(output);
+}
+
+extern "C" __declspec(dllexport) void RemoveOutput(void *output) {
+    std::lock_guard<std::mutex> lock(mutex);
+    auto it = std::find(outputs.begin(), outputs.end(), output);
+    if (it != outputs.end()) {
+      outputs.erase(it);
+    }
+}
+
 }

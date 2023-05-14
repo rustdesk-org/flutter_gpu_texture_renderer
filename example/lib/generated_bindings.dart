@@ -19,23 +19,19 @@ class NativeLibrary {
           lookup)
       : _lookup = lookup;
 
-  void SetAndStartDuplicateThread(
-    ffi.Pointer<ffi.Void> pOutput,
+  void StartDuplicateThread(
     ffi.Pointer<ffi.Void> pDevice,
   ) {
-    return _SetAndStartDuplicateThread(
-      pOutput,
+    return _StartDuplicateThread(
       pDevice,
     );
   }
 
-  late final _SetAndStartDuplicateThreadPtr = _lookup<
-      ffi.NativeFunction<
-          ffi.Void Function(ffi.Pointer<ffi.Void>,
-              ffi.Pointer<ffi.Void>)>>('SetAndStartDuplicateThread');
-  late final _SetAndStartDuplicateThread =
-      _SetAndStartDuplicateThreadPtr.asFunction<
-          void Function(ffi.Pointer<ffi.Void>, ffi.Pointer<ffi.Void>)>();
+  late final _StartDuplicateThreadPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Void>)>>(
+          'StartDuplicateThread');
+  late final _StartDuplicateThread = _StartDuplicateThreadPtr.asFunction<
+      void Function(ffi.Pointer<ffi.Void>)>();
 
   void StopDuplicateThread() {
     return _StopDuplicateThread();
@@ -45,4 +41,32 @@ class NativeLibrary {
       _lookup<ffi.NativeFunction<ffi.Void Function()>>('StopDuplicateThread');
   late final _StopDuplicateThread =
       _StopDuplicateThreadPtr.asFunction<void Function()>();
+
+  void AddOutput(
+    ffi.Pointer<ffi.Void> output,
+  ) {
+    return _AddOutput(
+      output,
+    );
+  }
+
+  late final _AddOutputPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Void>)>>(
+          'AddOutput');
+  late final _AddOutput =
+      _AddOutputPtr.asFunction<void Function(ffi.Pointer<ffi.Void>)>();
+
+  void RemoveOutput(
+    ffi.Pointer<ffi.Void> output,
+  ) {
+    return _RemoveOutput(
+      output,
+    );
+  }
+
+  late final _RemoveOutputPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Void>)>>(
+          'RemoveOutput');
+  late final _RemoveOutput =
+      _RemoveOutputPtr.asFunction<void Function(ffi.Pointer<ffi.Void>)>();
 }

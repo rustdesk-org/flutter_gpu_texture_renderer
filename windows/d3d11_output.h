@@ -16,7 +16,7 @@ namespace flutter_gpu_texture_renderer {
 
 class D3D11Output  {
  public:
-  D3D11Output(flutter::TextureRegistrar *texture_registrar, IDXGIAdapter *adapter);
+  D3D11Output(flutter::TextureRegistrar *texture_registrar, ID3D11Device *device);
   virtual ~D3D11Output();
   int64_t TextureId() { return texture_id_; }
   ID3D11Device* Device() { return dev_.Get(); }
@@ -31,7 +31,6 @@ class D3D11Output  {
  
  private:
   flutter::TextureRegistrar *texture_registrar_ = nullptr;
-  ComPtr<IDXGIAdapter> adapter_ = nullptr;
   ComPtr<ID3D11Device> dev_ = nullptr;
   ComPtr<ID3D11DeviceContext> ctx_ = nullptr;
   ComPtr<ID3D11Texture2D> tex_ = nullptr;
