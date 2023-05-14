@@ -45,15 +45,6 @@ class _MyAppState extends State<MyApp> with WindowListener {
 
   @override
   Widget build(BuildContext context) {
-    final items = List<Widget>.empty(growable: true);
-    for (int i = 0; i < _count; i++) {
-      items.add(SizedBox(
-          width: 1920 / 2,
-          height: 1080 / 2,
-          child: VideoOutput(
-              plugin: _flutterGpuTextureRendererPlugin,
-              library: _duplicationLib)));
-    }
     bool isSingleItem = _count == 1;
     return MaterialApp(
       home: Scaffold(
@@ -91,8 +82,8 @@ class _MyAppState extends State<MyApp> with WindowListener {
             (index) => Padding(
               padding: EdgeInsets.all(isSingleItem ? 0 : 5),
               child: SizedBox(
-                width: 1920,
-                height: 1080,
+                width: 2880,
+                height: 1800,
                 child: VideoOutput(
                     plugin: _flutterGpuTextureRendererPlugin,
                     library: _duplicationLib),
