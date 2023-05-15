@@ -102,6 +102,7 @@ bool D3D11Output::EnsureTexture(ID3D11Texture2D *texture) {
   surface_desc_->release_callback = [](void* release_context) {
     D3D11Output *self = (D3D11Output*) release_context;
     self->allowInput_ = true;
+    self->SetFPS();
   };
 
   width_ = newDesc.Width;
@@ -112,6 +113,17 @@ bool D3D11Output::EnsureTexture(ID3D11Texture2D *texture) {
 
 bool D3D11Output::Present() {
   return texture_registrar_->MarkTextureFrameAvailable(texture_id_);
+}
+
+void D3D11Output::SetFPS() {
+  this_fps_++;
+  auto now = std::chrono::high_resolution_clock::now();
+  auto elapsed = std::chrono::duration_cast<std::chrono::seconds>(now - fps_time_point_.load()).count();
+  if (elapsed >= 1) {
+    fps_time_point_ = now;
+    last_fps_.store(this_fps_);
+    this_fps_ = 0;
+  }
 }
 
 }

@@ -28,6 +28,7 @@ class D3D11Output  {
   D3D11Output(const D3D11Output&) = delete;
   D3D11Output& operator=(const D3D11Output&) = delete;
   bool EnsureTexture(ID3D11Texture2D *texture);
+  void SetFPS();
  
  private:
   flutter::TextureRegistrar *texture_registrar_ = nullptr;
@@ -40,6 +41,9 @@ class D3D11Output  {
   UINT width_ = 0;
   UINT height_ = 0;
   std::atomic_bool allowInput_ = true;
+  std::atomic_char16_t last_fps_ = 0;
+  std::atomic_char16_t this_fps_ = 0;
+  std::atomic<std::chrono::steady_clock::time_point> fps_time_point_ = std::chrono::steady_clock::now();
 };
 
 }  // namespace flutter_gpu_texture_renderer
