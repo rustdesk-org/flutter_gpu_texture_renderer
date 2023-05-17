@@ -23,6 +23,8 @@ class MyApp extends StatefulWidget {
 class _MyAppState extends State<MyApp> with WindowListener {
   final _flutterGpuTextureRendererPlugin = FlutterGpuTextureRenderer();
   final _duplicationLib = NativeLibrary(DynamicLibrary.open("duplication.dll"));
+  final _pluginLib = NativeLibrary(
+      DynamicLibrary.open("flutter_gpu_texture_renderer_plugin.dll"));
   var _count = 1;
 
   @override
@@ -86,7 +88,8 @@ class _MyAppState extends State<MyApp> with WindowListener {
                 height: 1800,
                 child: VideoOutput(
                     plugin: _flutterGpuTextureRendererPlugin,
-                    library: _duplicationLib),
+                    pluginlib: _pluginLib,
+                    duplib: _duplicationLib),
               ),
             ),
           ),
@@ -98,8 +101,13 @@ class _MyAppState extends State<MyApp> with WindowListener {
 
 class VideoOutput extends StatefulWidget {
   final FlutterGpuTextureRenderer plugin;
-  final NativeLibrary library;
-  const VideoOutput({Key? key, required this.plugin, required this.library})
+  final NativeLibrary pluginlib;
+  final NativeLibrary duplib;
+  const VideoOutput(
+      {Key? key,
+      required this.plugin,
+      required this.pluginlib,
+      required this.duplib})
       : super(key: key);
 
   @override
@@ -109,7 +117,8 @@ class VideoOutput extends StatefulWidget {
 class _VideoOutputState extends State<VideoOutput> {
   int? _textureId;
   get plugin => widget.plugin;
-  get library => widget.library;
+  get pluginlib => widget.pluginlib;
+  get duplib => widget.duplib;
 
   @override
   void initState() {
@@ -121,12 +130,14 @@ class _VideoOutputState extends State<VideoOutput> {
     try {
       _textureId = await widget.plugin.registerTexture();
       if (_textureId != null) {
-        final device = await plugin.device(_textureId!);
+        // final device = await plugin.device(_textureId!);
+        final device = pluginlib.FlutterGpuTextureRendererPluginCApiGetDevice();
         final output = await plugin.output(_textureId!);
         setState(() {});
         if (device != null && output != null) {
-          library.StartDuplicateThread(Pointer.fromAddress(device));
-          library.AddOutput(Pointer.fromAddress(output));
+          // duplib.StartDuplicateThread(Pointer.fromAddress(device));
+          duplib.StartDuplicateThread(device);
+          duplib.AddOutput(Pointer.fromAddress(output));
         }
       }
     } on PlatformException {

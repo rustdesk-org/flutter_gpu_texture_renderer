@@ -24,6 +24,8 @@ class FlutterGpuTextureRendererPlugin : public flutter::Plugin {
   FlutterGpuTextureRendererPlugin(const FlutterGpuTextureRendererPlugin&) = delete;
   FlutterGpuTextureRendererPlugin& operator=(const FlutterGpuTextureRendererPlugin&) = delete;
 
+  static ID3D11Device* GetDevice() { return dev_.Get(); }
+
  private:
   // Called when a method is called on this plugin's channel from Dart.
   void HandleMethodCall(
@@ -35,7 +37,7 @@ class FlutterGpuTextureRendererPlugin : public flutter::Plugin {
  private:
     flutter::PluginRegistrarWindows* registrar_ = nullptr;
     HWND hwnd_ = nullptr;
-    ComPtr<ID3D11Device> dev_ = nullptr;
+    static ComPtr<ID3D11Device> dev_;
     std::vector<std::unique_ptr<D3D11Output>> outputs_;
     std::mutex mutex_;   
 };

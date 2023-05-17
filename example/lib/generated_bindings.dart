@@ -69,4 +69,15 @@ class NativeLibrary {
           'RemoveOutput');
   late final _RemoveOutput =
       _RemoveOutputPtr.asFunction<void Function(ffi.Pointer<ffi.Void>)>();
+
+  ffi.Pointer<ffi.Void> FlutterGpuTextureRendererPluginCApiGetDevice() {
+    return _FlutterGpuTextureRendererPluginCApiGetDevice();
+  }
+
+  late final _FlutterGpuTextureRendererPluginCApiGetDevicePtr =
+      _lookup<ffi.NativeFunction<ffi.Pointer<ffi.Void> Function()>>(
+          'FlutterGpuTextureRendererPluginCApiGetDevice');
+  late final _FlutterGpuTextureRendererPluginCApiGetDevice =
+      _FlutterGpuTextureRendererPluginCApiGetDevicePtr.asFunction<
+          ffi.Pointer<ffi.Void> Function()>();
 }

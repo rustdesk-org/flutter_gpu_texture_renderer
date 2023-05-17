@@ -11,4 +11,6 @@ void AddOutput(void *output) {};
 
 void RemoveOutput(void *output) {};
 
+void* FlutterGpuTextureRendererPluginCApiGetDevice() {};
+
 #endif

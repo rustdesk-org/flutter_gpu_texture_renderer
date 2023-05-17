@@ -18,6 +18,8 @@ FLUTTER_PLUGIN_EXPORT void FlutterGpuTextureRendererPluginCApiRegisterWithRegist
 
 FLUTTER_PLUGIN_EXPORT void FlutterGpuTextureRendererPluginCApiSetTexture(void *output, void *texture);
 
+FLUTTER_PLUGIN_EXPORT void* FlutterGpuTextureRendererPluginCApiGetDevice();
+
 #if defined(__cplusplus)
 }  // extern "C"
 #endif

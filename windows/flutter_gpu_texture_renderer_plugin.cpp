@@ -10,6 +10,8 @@
 
 namespace flutter_gpu_texture_renderer {
 
+ComPtr<ID3D11Device> FlutterGpuTextureRendererPlugin::dev_ = nullptr;
+
 // static
 void FlutterGpuTextureRendererPlugin::RegisterWithRegistrar(
     flutter::PluginRegistrarWindows *registrar) {
@@ -27,7 +29,7 @@ FlutterGpuTextureRendererPlugin::FlutterGpuTextureRendererPlugin(flutter::Plugin
       [&](const auto &call, auto result) {
         this->HandleMethodCall(call, std::move(result));
       });
-
+  CreateDevice(registrar_->GetView()->GetGraphicsAdapter());
 }
 
 FlutterGpuTextureRendererPlugin::~FlutterGpuTextureRendererPlugin() {
@@ -42,7 +44,7 @@ void FlutterGpuTextureRendererPlugin::HandleMethodCall(
   std::lock_guard<std::mutex> lock(mutex_);
   try {
     if (method_call.method_name().compare("registerTexture") == 0) {
-      if (CreateDevice(registrar_->GetView()->GetGraphicsAdapter())) {
+      if (dev_) {
         auto output = std::make_unique<D3D11Output>(registrar_->texture_registrar(), dev_.Get());
         auto id = output->TextureId();
         outputs_.push_back(std::move(output));
