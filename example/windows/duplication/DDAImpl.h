@@ -76,12 +76,11 @@ public:
 
 public:
     /// Constructor
-    DDAImpl(ID3D11Device *pDev, ID3D11DeviceContext* pDevCtx)
+    DDAImpl(ID3D11Device *pDev)
         :   pD3DDev(pDev)
-        ,   pCtx(pDevCtx)
     {
         pD3DDev->AddRef();
-        pCtx->AddRef();
+        pD3DDev->GetImmediateContext(&pCtx);
         QueryPerformanceFrequency(&qpcFreq);
     }
     /// Destructor. Release all resources before destroying the object

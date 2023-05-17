@@ -206,7 +206,6 @@ typedef void (*DuplicateCallback)(void *output, void* texture);
 static DuplicateCallback duplicateCallback = nullptr;
 static std::vector<void*> outputs;
 static ComPtr<ID3D11Device> device = nullptr;
-static ComPtr<ID3D11DeviceContext> deviceCtx = nullptr;
 static std::atomic_bool stop = false;
 static std::unique_ptr<std::thread> duplicateThreadHandle;
 static std::mutex mutex;
@@ -221,7 +220,7 @@ void duplicateThread() {
       continue;
     }
     if (!dda) {
-      dda = std::make_unique<DDAImpl>(device.Get(), deviceCtx.Get());
+      dda = std::make_unique<DDAImpl>(device.Get());
       dda->Init();
       std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
@@ -241,7 +240,6 @@ extern "C" __declspec(dllexport) void StartDuplicateThread(void *pDevice) {
     std::lock_guard<std::mutex> lock(mutex);
     if (duplicateThreadHandle) return;
     device = (ID3D11Device*)pDevice;
-    device->GetImmediateContext(deviceCtx.ReleaseAndGetAddressOf());
 
     HMODULE hDll = LoadLibraryA("flutter_gpu_texture_renderer_plugin.dll");
     duplicateCallback = reinterpret_cast<DuplicateCallback>(GetProcAddress(hDll, "FlutterGpuTextureRendererPluginCApiSetTexture"));
