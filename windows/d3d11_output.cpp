@@ -43,11 +43,14 @@ D3D11Output::~D3D11Output() {
 #endif
 }
 
-bool D3D11Output::SetTexture(ID3D11Texture2D *texture) {
-  if (!texture) return false;
+bool D3D11Output::SetTexture(HANDLE shared_handle) {
+  if (!shared_handle) return false;
   if (!allowInput_) return false;
 
-  ComPtr<ID3D11Texture2D> tex = texture;
+  ComPtr<IDXGIResource> resource = nullptr;
+  MS_THROW(dev_->OpenSharedResource(shared_handle, __uuidof(ID3D10Texture2D), (void**)resource.ReleaseAndGetAddressOf()));
+  ComPtr<ID3D11Texture2D> tex = nullptr;
+  MS_THROW(resource.As(&tex));
   if (!EnsureTexture(tex.Get())) return false;
   ctx_->CopyResource(tex_.Get(), tex.Get());
   ctx_->Flush();

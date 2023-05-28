@@ -10,7 +10,7 @@
 
 namespace flutter_gpu_texture_renderer {
 
-ComPtr<ID3D11Device> FlutterGpuTextureRendererPlugin::dev_ = nullptr;
+DXGI_ADAPTER_DESC FlutterGpuTextureRendererPlugin::desc_ = {0};   
 
 // static
 void FlutterGpuTextureRendererPlugin::RegisterWithRegistrar(
@@ -29,7 +29,10 @@ FlutterGpuTextureRendererPlugin::FlutterGpuTextureRendererPlugin(flutter::Plugin
       [&](const auto &call, auto result) {
         this->HandleMethodCall(call, std::move(result));
       });
-  CreateDevice(registrar_->GetView()->GetGraphicsAdapter());
+  adapter_ = registrar_->GetView()->GetGraphicsAdapter();
+  if (SUCCEEDED(adapter_->GetDesc(&desc_))) {
+    std::wcout << "Graphics adapter: " << desc_.Description << std::endl;
+  }
 }
 
 FlutterGpuTextureRendererPlugin::~FlutterGpuTextureRendererPlugin() {
@@ -44,7 +47,7 @@ void FlutterGpuTextureRendererPlugin::HandleMethodCall(
   std::lock_guard<std::mutex> lock(mutex_);
   try {
     if (method_call.method_name().compare("registerTexture") == 0) {
-      if (dev_) {
+      if (CreateDevice()) {
         auto output = std::make_unique<D3D11Output>(registrar_->texture_registrar(), dev_.Get());
         auto id = output->TextureId();
         outputs_.push_back(std::move(output));
@@ -90,21 +93,15 @@ void FlutterGpuTextureRendererPlugin::HandleMethodCall(
   return result->Error("", "");
 }
 
-bool FlutterGpuTextureRendererPlugin::CreateDevice(IDXGIAdapter *adapter) {
+bool FlutterGpuTextureRendererPlugin::CreateDevice() {
   if (dev_) return true;
-  if (adapter) {
-    DXGI_ADAPTER_DESC desc;
-    if (SUCCEEDED(adapter->GetDesc(&desc))) {
-      std::wcout << "Graphics adapter: " << desc.Description << std::endl;
-    }
-  }
   UINT creationFlags = D3D11_CREATE_DEVICE_BGRA_SUPPORT;
 #ifdef _DEBUG
   creationFlags |= D3D11_CREATE_DEVICE_DEBUG;
 #endif
   auto hr = D3D11CreateDevice(
-    adapter,
-    (adapter ? D3D_DRIVER_TYPE_UNKNOWN : D3D_DRIVER_TYPE_HARDWARE),
+    adapter_.Get(),
+    (adapter_ ? D3D_DRIVER_TYPE_UNKNOWN : D3D_DRIVER_TYPE_HARDWARE),
     NULL, creationFlags, NULL, 0, D3D11_SDK_VERSION,
     dev_.ReleaseAndGetAddressOf(), NULL,
     NULL);
@@ -119,9 +116,9 @@ bool FlutterGpuTextureRendererPlugin::CreateDevice(IDXGIAdapter *adapter) {
     std::cerr << "Get ID3D10Multithread failed, hr = " << std::hex << hr << std::dec << std::endl;
     return false;
   }
-  if (!mt->SetMultithreadProtected(TRUE)) {
+  if (!mt->SetMultithreadProtected(TRUE) && !mt->GetMultithreadProtected()) {
     std::cerr << "SetMultithreadProtected failed" << std::endl;
-    // return false;
+    return false;
   }
   return true;
 }

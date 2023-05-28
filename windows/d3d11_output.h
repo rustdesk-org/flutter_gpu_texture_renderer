@@ -20,7 +20,7 @@ class D3D11Output  {
   virtual ~D3D11Output();
   int64_t TextureId() { return texture_id_; }
   ID3D11Device* Device() { return dev_.Get(); }
-  bool SetTexture(ID3D11Texture2D *texture);
+  bool SetTexture(HANDLE shared_handle);
   bool Present();
 
  private:
