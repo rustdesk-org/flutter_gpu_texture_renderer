@@ -3,7 +3,7 @@
 
 typedef void (*DuplicateCallback)(void *output, void* texture);
 
-void StartDuplicateThread(void *pDevice) {};
+void StartDuplicateThread(long long luid) {};
 
 void StopDuplicateThread() {};
 
@@ -11,6 +11,6 @@ void AddOutput(void *output) {};
 
 void RemoveOutput(void *output) {};
 
-void* FlutterGpuTextureRendererPluginCApiGetDevice() {};
+long long FlutterGpuTextureRendererPluginCApiGetAdapterLuid() {};
 
 #endif

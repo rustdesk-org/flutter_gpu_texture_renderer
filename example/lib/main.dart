@@ -116,9 +116,9 @@ class VideoOutput extends StatefulWidget {
 
 class _VideoOutputState extends State<VideoOutput> {
   int? _textureId;
-  get plugin => widget.plugin;
-  get pluginlib => widget.pluginlib;
-  get duplib => widget.duplib;
+  FlutterGpuTextureRenderer get plugin => widget.plugin;
+  NativeLibrary get pluginlib => widget.pluginlib;
+  NativeLibrary get duplib => widget.duplib;
 
   @override
   void initState() {
@@ -131,12 +131,13 @@ class _VideoOutputState extends State<VideoOutput> {
       _textureId = await widget.plugin.registerTexture();
       if (_textureId != null) {
         // final device = await plugin.device(_textureId!);
-        final device = pluginlib.FlutterGpuTextureRendererPluginCApiGetDevice();
+        final luid =
+            pluginlib.FlutterGpuTextureRendererPluginCApiGetAdapterLuid();
         final output = await plugin.output(_textureId!);
         setState(() {});
-        if (device != null && output != null) {
+        if (output != null) {
           // duplib.StartDuplicateThread(Pointer.fromAddress(device));
-          duplib.StartDuplicateThread(device);
+          duplib.StartDuplicateThread(luid);
           duplib.AddOutput(Pointer.fromAddress(output));
         }
       }

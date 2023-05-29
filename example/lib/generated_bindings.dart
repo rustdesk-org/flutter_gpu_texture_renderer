@@ -20,18 +20,18 @@ class NativeLibrary {
       : _lookup = lookup;
 
   void StartDuplicateThread(
-    ffi.Pointer<ffi.Void> pDevice,
+    int luid,
   ) {
     return _StartDuplicateThread(
-      pDevice,
+      luid,
     );
   }
 
   late final _StartDuplicateThreadPtr =
-      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Void>)>>(
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.LongLong)>>(
           'StartDuplicateThread');
-  late final _StartDuplicateThread = _StartDuplicateThreadPtr.asFunction<
-      void Function(ffi.Pointer<ffi.Void>)>();
+  late final _StartDuplicateThread =
+      _StartDuplicateThreadPtr.asFunction<void Function(int)>();
 
   void StopDuplicateThread() {
     return _StopDuplicateThread();
@@ -70,14 +70,14 @@ class NativeLibrary {
   late final _RemoveOutput =
       _RemoveOutputPtr.asFunction<void Function(ffi.Pointer<ffi.Void>)>();
 
-  ffi.Pointer<ffi.Void> FlutterGpuTextureRendererPluginCApiGetDevice() {
-    return _FlutterGpuTextureRendererPluginCApiGetDevice();
+  int FlutterGpuTextureRendererPluginCApiGetAdapterLuid() {
+    return _FlutterGpuTextureRendererPluginCApiGetAdapterLuid();
   }
 
-  late final _FlutterGpuTextureRendererPluginCApiGetDevicePtr =
-      _lookup<ffi.NativeFunction<ffi.Pointer<ffi.Void> Function()>>(
-          'FlutterGpuTextureRendererPluginCApiGetDevice');
-  late final _FlutterGpuTextureRendererPluginCApiGetDevice =
-      _FlutterGpuTextureRendererPluginCApiGetDevicePtr.asFunction<
-          ffi.Pointer<ffi.Void> Function()>();
+  late final _FlutterGpuTextureRendererPluginCApiGetAdapterLuidPtr =
+      _lookup<ffi.NativeFunction<ffi.LongLong Function()>>(
+          'FlutterGpuTextureRendererPluginCApiGetAdapterLuid');
+  late final _FlutterGpuTextureRendererPluginCApiGetAdapterLuid =
+      _FlutterGpuTextureRendererPluginCApiGetAdapterLuidPtr.asFunction<
+          int Function()>();
 }

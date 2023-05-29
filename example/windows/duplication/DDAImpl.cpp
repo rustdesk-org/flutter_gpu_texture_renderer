@@ -206,13 +206,28 @@ typedef void (*DuplicateCallback)(void *output, void* texture);
 static DuplicateCallback duplicateCallback = nullptr;
 static std::vector<void*> outputs;
 static ComPtr<ID3D11Device> device = nullptr;
+static ComPtr<ID3D11DeviceContext> deviceContext = nullptr;
 static std::atomic_bool stop = false;
 static std::unique_ptr<std::thread> duplicateThreadHandle;
 static std::mutex mutex;
 
+#define HRB(f) MS_CHECK(f, return false;)
+#define HRC(f) MS_CHECK(f, continue;)
+#define MS_CHECK(f, ...)  do { \
+        HRESULT __ms_hr__ = (f); \
+        if (FAILED(__ms_hr__)) { \
+            std::clog << #f "  ERROR@" << __LINE__ << __FUNCTION__ << ": (" << std::hex << __ms_hr__ << std::dec << ") " << std::error_code(__ms_hr__, std::system_category()).message() << std::endl << std::flush; \
+            __VA_ARGS__ \
+        } \
+    } while (false)
+#define LUID(desc) (((int64_t)desc.AdapterLuid.HighPart << 32) | desc.AdapterLuid.LowPart)
+
 namespace {
 void duplicateThread() {
   std::unique_ptr<DDAImpl> dda = nullptr;
+  ComPtr<ID3D11Texture2D> texture = nullptr;
+  ComPtr<ID3D11Texture2D> sharedTexture = nullptr;
+  ComPtr<IDXGIResource> resource = nullptr;
 
   while (!stop) {
     if (!duplicateCallback) {
@@ -224,22 +239,78 @@ void duplicateThread() {
       dda->Init();
       std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
-    ComPtr<ID3D11Texture2D> texture = nullptr;
     if(SUCCEEDED(dda->GetCapturedFrame(texture.ReleaseAndGetAddressOf(), 100))) {
+      D3D11_TEXTURE2D_DESC desc;
+      ZeroMemory(&desc, sizeof(desc));
+      texture->GetDesc(&desc);
+      desc.MiscFlags = D3D11_RESOURCE_MISC_SHARED;
+      HRC(device->CreateTexture2D(&desc, nullptr, sharedTexture.ReleaseAndGetAddressOf()));
+      deviceContext->CopyResource(sharedTexture.Get(), texture.Get());
+      deviceContext->Flush();
+      HRC(sharedTexture.As(&resource));
+      HANDLE sharedHandle = nullptr;
+      HRC(resource->GetSharedHandle(&sharedHandle));
       std::lock_guard<std::mutex> lock(mutex);
       for (auto output: outputs) {
-        duplicateCallback(output, texture.Get());
+        duplicateCallback(output, sharedHandle);
       }
     } else {
+      std::cerr << "dda reset" << std::endl;
       dda.reset();
     }
   }
 }
 
-extern "C" __declspec(dllexport) void StartDuplicateThread(void *pDevice) {
+bool CreateDevice(int64_t luid) {
+  HRESULT hr = S_OK;
+
+  ComPtr<IDXGIFactory1> factory1 = nullptr;
+  ComPtr<IDXGIAdapter1> adapter1 = nullptr;
+	HRB(CreateDXGIFactory1(__uuidof(IDXGIFactory1), (void**)factory1.ReleaseAndGetAddressOf()));
+
+	ComPtr<IDXGIAdapter1> tmpAdapter = nullptr;
+	for (int i = 0; !FAILED(factory1->EnumAdapters1(i, tmpAdapter.ReleaseAndGetAddressOf())); i++) {
+		DXGI_ADAPTER_DESC1 desc = DXGI_ADAPTER_DESC1();
+		tmpAdapter->GetDesc1(&desc);
+		if (LUID(desc) == luid) {
+			adapter1.Swap(tmpAdapter);
+			break;
+		}
+	}
+	if (!adapter1) {
+		return false;
+	}
+
+	UINT createDeviceFlags = 0;
+	D3D_FEATURE_LEVEL featureLevels[] =
+	{
+		D3D_FEATURE_LEVEL_11_0,
+	};
+	UINT numFeatureLevels = ARRAYSIZE(featureLevels);
+
+	D3D_FEATURE_LEVEL featureLevel;
+	D3D_DRIVER_TYPE d3dDriverType = adapter1 ? D3D_DRIVER_TYPE_UNKNOWN: D3D_DRIVER_TYPE_HARDWARE;
+	hr = D3D11CreateDevice(adapter1.Get(), d3dDriverType, nullptr, createDeviceFlags, featureLevels, numFeatureLevels,
+		D3D11_SDK_VERSION, device.ReleaseAndGetAddressOf(), &featureLevel, deviceContext.ReleaseAndGetAddressOf());
+
+	if (FAILED(hr))
+	{
+		return false;
+	}
+
+	if (featureLevel != D3D_FEATURE_LEVEL_11_0)
+	{
+		std::cerr << "Direct3D Feature Level 11 unsupported." << std::endl;
+		return false;
+	}
+	return true;
+}
+}
+
+extern "C" __declspec(dllexport) void StartDuplicateThread(int64_t luid) {
     std::lock_guard<std::mutex> lock(mutex);
     if (duplicateThreadHandle) return;
-    device = (ID3D11Device*)pDevice;
+    if (!CreateDevice(luid)) return;
 
     HMODULE hDll = LoadLibraryA("flutter_gpu_texture_renderer_plugin.dll");
     duplicateCallback = reinterpret_cast<DuplicateCallback>(GetProcAddress(hDll, "FlutterGpuTextureRendererPluginCApiSetTexture"));
@@ -264,6 +335,4 @@ extern "C" __declspec(dllexport) void RemoveOutput(void *output) {
     if (it != outputs.end()) {
       outputs.erase(it);
     }
-}
-
 }
