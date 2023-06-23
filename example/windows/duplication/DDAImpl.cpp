@@ -254,10 +254,11 @@ void duplicateThread() {
       for (auto output: outputs) {
         duplicateCallback(output, sharedHandle);
       }
-    } else {
-      std::cerr << "dda reset" << std::endl;
-      dda.reset();
-    }
+    } 
+    // else {
+    //   std::cerr << "dda reset" << std::endl;
+    //   dda.reset();
+    // }
   }
 }
 

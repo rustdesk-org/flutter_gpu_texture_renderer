@@ -45,39 +45,20 @@ D3D11Output::~D3D11Output() {
 
 bool D3D11Output::SetTexture(HANDLE shared_handle) {
   if (!shared_handle) return false;
-  if (!allowInput_) return false;
+  if (!allowInput_)  return false;
 
-  ComPtr<IDXGIResource> resource = nullptr;
-  MS_THROW(dev_->OpenSharedResource(shared_handle, __uuidof(ID3D10Texture2D), (void**)resource.ReleaseAndGetAddressOf()));
-  ComPtr<ID3D11Texture2D> tex = nullptr;
-  MS_THROW(resource.As(&tex));
-  if (!EnsureTexture(tex.Get())) return false;
-  ctx_->CopyResource(tex_.Get(), tex.Get());
-  ctx_->Flush();
+  if (!EnsureTexture(shared_handle)) return false;
   allowInput_ = false;
 
   return Present();
 }
 
-bool D3D11Output::EnsureTexture(ID3D11Texture2D *texture) {
-  D3D11_TEXTURE2D_DESC newDesc;
-  texture->GetDesc(&newDesc);
-  if (tex_ && newDesc.Width == width_ && newDesc.Height == height_) return true;
-
+bool D3D11Output::EnsureTexture(HANDLE shared_handle) {
+  ComPtr<IDXGIResource> resource = nullptr;
+  MS_THROW(dev_->OpenSharedResource(shared_handle, __uuidof(ID3D10Texture2D), (void**)resource.ReleaseAndGetAddressOf()));
+  MS_THROW(resource.As(&tex_));
   D3D11_TEXTURE2D_DESC desc;
-  ZeroMemory(&desc, sizeof(desc));
-  desc.Width = newDesc.Width;
-  desc.Height = newDesc.Height;
-  desc.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
-  desc.MipLevels = 1;
-  desc.ArraySize = 1;
-  desc.SampleDesc.Count = 1;
-  desc.SampleDesc.Quality = 0;
-  desc.Usage = D3D11_USAGE_DEFAULT;
-  desc.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
-  desc.CPUAccessFlags = 0;
-  desc.MiscFlags = D3D11_RESOURCE_MISC_SHARED;
-  MS_THROW(dev_->CreateTexture2D(&desc, nullptr, tex_.ReleaseAndGetAddressOf()));
+  tex_->GetDesc(&desc);
 
   // clear view only
   ComPtr<ID3D11RenderTargetView> rtv;
@@ -90,11 +71,6 @@ bool D3D11Output::EnsureTexture(ID3D11Texture2D *texture) {
   ctx_->ClearRenderTargetView(rtv.Get(), c);
   ID3D11RenderTargetView* const targets[1] = { rtv.Get()};
   ctx_->OMSetRenderTargets(1, targets, nullptr);
-
-  ComPtr<IDXGIResource> res;
-  MS_THROW(tex_.As(&res));
-  HANDLE shared_handle = nullptr;
-  MS_THROW(res->GetSharedHandle(&shared_handle));
   
   surface_desc_->struct_size = sizeof(FlutterDesktopGpuSurfaceDescriptor);
   surface_desc_->handle = shared_handle;;
@@ -107,9 +83,6 @@ bool D3D11Output::EnsureTexture(ID3D11Texture2D *texture) {
     self->allowInput_ = true;
     self->SetFPS();
   };
-
-  width_ = newDesc.Width;
-  height_ = newDesc.Height;
 
   return true;
 }
@@ -126,6 +99,7 @@ void D3D11Output::SetFPS() {
     fps_time_point_ = now;
     last_fps_.store(this_fps_);
     this_fps_ = 0;
+    // std::cout << "fps:" << (int)last_fps_.load() << std::endl;
   }
 }
 

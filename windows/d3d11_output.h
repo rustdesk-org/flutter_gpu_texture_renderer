@@ -27,7 +27,7 @@ class D3D11Output  {
   D3D11Output() = delete;
   D3D11Output(const D3D11Output&) = delete;
   D3D11Output& operator=(const D3D11Output&) = delete;
-  bool EnsureTexture(ID3D11Texture2D *texture);
+  bool EnsureTexture(HANDLE shared_handle);
   void SetFPS();
  
  private:
@@ -38,8 +38,6 @@ class D3D11Output  {
   std::unique_ptr<FlutterDesktopGpuSurfaceDescriptor> surface_desc_ = nullptr;
   std::unique_ptr<flutter::TextureVariant> variant_ = nullptr;
   int64_t texture_id_ = 0;
-  UINT width_ = 0;
-  UINT height_ = 0;
   std::atomic_bool allowInput_ = true;
   std::atomic_char16_t last_fps_ = 0;
   std::atomic_char16_t this_fps_ = 0;
