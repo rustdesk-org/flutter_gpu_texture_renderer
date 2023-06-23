@@ -59,18 +59,6 @@ bool D3D11Output::EnsureTexture(HANDLE shared_handle) {
   MS_THROW(resource.As(&tex_));
   D3D11_TEXTURE2D_DESC desc;
   tex_->GetDesc(&desc);
-
-  // clear view only
-  ComPtr<ID3D11RenderTargetView> rtv;
-  D3D11_RENDER_TARGET_VIEW_DESC rtd;
-  ZeroMemory(&rtd, sizeof(rtd));
-  rtd.Format = desc.Format;
-  rtd.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
-  MS_THROW(dev_->CreateRenderTargetView(tex_.Get(), &rtd, &rtv));
-  const float c[] = { 0.0f, 0.0f, 0.0f, 1.0f };
-  ctx_->ClearRenderTargetView(rtv.Get(), c);
-  ID3D11RenderTargetView* const targets[1] = { rtv.Get()};
-  ctx_->OMSetRenderTargets(1, targets, nullptr);
   
   surface_desc_->struct_size = sizeof(FlutterDesktopGpuSurfaceDescriptor);
   surface_desc_->handle = shared_handle;;
