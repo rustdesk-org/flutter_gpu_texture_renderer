@@ -8,19 +8,23 @@
 
 void FlutterGpuTextureRendererPluginCApiRegisterWithRegistrar(
     FlutterDesktopPluginRegistrarRef registrar) {
-  flutter_gpu_texture_renderer::FlutterGpuTextureRendererPlugin::RegisterWithRegistrar(
-      flutter::PluginRegistrarManager::GetInstance()
-          ->GetRegistrar<flutter::PluginRegistrarWindows>(registrar));
+  flutter_gpu_texture_renderer::FlutterGpuTextureRendererPlugin::
+      RegisterWithRegistrar(
+          flutter::PluginRegistrarManager::GetInstance()
+              ->GetRegistrar<flutter::PluginRegistrarWindows>(registrar));
 }
 
 using flutter_gpu_texture_renderer::D3D11Output;
 
-void FlutterGpuTextureRendererPluginCApiSetTexture(void *output, void *shared_handle) {
-    if (!output || !shared_handle) return;
-    D3D11Output *d3d11Output = (D3D11Output*)(output);
-    d3d11Output->SetTexture(shared_handle);
+void FlutterGpuTextureRendererPluginCApiSetTexture(void *output,
+                                                   void *shared_handle) {
+  if (!output || !shared_handle)
+    return;
+  D3D11Output *d3d11Output = (D3D11Output *)(output);
+  d3d11Output->SetTexture(shared_handle);
 }
 
 int64_t FlutterGpuTextureRendererPluginCApiGetAdapterLuid() {
-  return flutter_gpu_texture_renderer::FlutterGpuTextureRendererPlugin::GetAdapterLuid();
+  return flutter_gpu_texture_renderer::FlutterGpuTextureRendererPlugin::
+      GetAdapterLuid();
 }

@@ -27,62 +27,61 @@
  */
 
 #pragma once
+#include <d3d11_2.h>
+#include <dxgi1_2.h>
+#include <fstream>
 #include <iostream>
 #include <vector>
-#include <fstream>
-#include <dxgi1_2.h>
-#include <d3d11_2.h>
 
-class DDAImpl
-{
-    ///  Thin wrapper around IDXGIOutputDuplication interface
-    /// Manages IDXGIOutputDuplication object lifecycle
-    /// Interacts with IDXGIOuputDuplication to acquire new frames
+class DDAImpl {
+  ///  Thin wrapper around IDXGIOutputDuplication interface
+  /// Manages IDXGIOutputDuplication object lifecycle
+  /// Interacts with IDXGIOuputDuplication to acquire new frames
 
 private:
-    /// The DDA object
-    IDXGIOutputDuplication* pDup = nullptr;
-    /// The D3D11 device used by the DDA session
-    ID3D11Device* pD3DDev = nullptr;
-    /// The D3D11 Device Context used by the DDA session
-    ID3D11DeviceContext* pCtx = nullptr;
-    /// The resource used to acquire a new captured frame from DDA
-    IDXGIResource *pResource = nullptr;
-    /// Output width obtained from DXGI_OUTDUPL_DESC
-    DWORD width = 0;
-    /// Output height obtained from DXGI_OUTDUPL_DESC
-    DWORD height = 0;
-    /// Running count of no. of accumulated desktop updates
-    int frameno = 0;
-    /// DXGI_OUTDUPL_FRAME_INFO::latPresentTime from the last Acquired frame
-    LARGE_INTEGER lastPTS = { 0 };
-    /// Clock frequency from QueryPerformaceFrequency()
-    LARGE_INTEGER qpcFreq = { 0 };
-    /// Default constructor
-    DDAImpl() {}
-    
-public:
-    /// Initialize DDA
-    HRESULT Init();
-    /// Acquire a new frame from DDA, and return it as a Texture2D object.
-    /// 'wait' specifies the time in milliseconds that DDA shoulo wait for a new screen update.
-    HRESULT GetCapturedFrame(ID3D11Texture2D **pTex2D, int wait, bool fail_if_equal = false);
-    /// Release all resources
-    int Cleanup();
-    /// Return output height to caller
-    inline DWORD getWidth() { return width; }
-    /// Return output width to caller
-    inline DWORD getHeight() { return height; }
+  /// The DDA object
+  IDXGIOutputDuplication *pDup = nullptr;
+  /// The D3D11 device used by the DDA session
+  ID3D11Device *pD3DDev = nullptr;
+  /// The D3D11 Device Context used by the DDA session
+  ID3D11DeviceContext *pCtx = nullptr;
+  /// The resource used to acquire a new captured frame from DDA
+  IDXGIResource *pResource = nullptr;
+  /// Output width obtained from DXGI_OUTDUPL_DESC
+  DWORD width = 0;
+  /// Output height obtained from DXGI_OUTDUPL_DESC
+  DWORD height = 0;
+  /// Running count of no. of accumulated desktop updates
+  int frameno = 0;
+  /// DXGI_OUTDUPL_FRAME_INFO::latPresentTime from the last Acquired frame
+  LARGE_INTEGER lastPTS = {0};
+  /// Clock frequency from QueryPerformaceFrequency()
+  LARGE_INTEGER qpcFreq = {0};
+  /// Default constructor
+  DDAImpl() {}
 
 public:
-    /// Constructor
-    DDAImpl(ID3D11Device *pDev)
-        :   pD3DDev(pDev)
-    {
-        pD3DDev->AddRef();
-        pD3DDev->GetImmediateContext(&pCtx);
-        QueryPerformanceFrequency(&qpcFreq);
-    }
-    /// Destructor. Release all resources before destroying the object
-    ~DDAImpl() { Cleanup(); }
+  /// Initialize DDA
+  HRESULT Init();
+  /// Acquire a new frame from DDA, and return it as a Texture2D object.
+  /// 'wait' specifies the time in milliseconds that DDA shoulo wait for a new
+  /// screen update.
+  HRESULT GetCapturedFrame(ID3D11Texture2D **pTex2D, int wait,
+                           bool fail_if_equal = false);
+  /// Release all resources
+  int Cleanup();
+  /// Return output height to caller
+  inline DWORD getWidth() { return width; }
+  /// Return output width to caller
+  inline DWORD getHeight() { return height; }
+
+public:
+  /// Constructor
+  DDAImpl(ID3D11Device *pDev) : pD3DDev(pDev) {
+    pD3DDev->AddRef();
+    pD3DDev->GetImmediateContext(&pCtx);
+    QueryPerformanceFrequency(&qpcFreq);
+  }
+  /// Destructor. Release all resources before destroying the object
+  ~DDAImpl() { Cleanup(); }
 };
