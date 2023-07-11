@@ -214,6 +214,7 @@ static DuplicateCallback duplicateCallback = nullptr;
 static std::vector<void *> outputs;
 static ComPtr<ID3D11Device> device = nullptr;
 static ComPtr<ID3D11DeviceContext> deviceContext = nullptr;
+static ComPtr<ID3D11Query> query = nullptr;
 static std::atomic_bool stop = false;
 static std::unique_ptr<std::thread> duplicateThreadHandle;
 static std::mutex mutex;
@@ -261,7 +262,25 @@ void duplicateThread() {
       desc.MiscFlags = D3D11_RESOURCE_MISC_SHARED;
       HRC(device->CreateTexture2D(&desc, nullptr,
                                   sharedTexture.ReleaseAndGetAddressOf()));
+      ComPtr<ID3D11Query> query;
+      D3D11_QUERY_DESC queryDesc;
+      ZeroMemory(&queryDesc, sizeof(queryDesc));
+      queryDesc.Query = D3D11_QUERY_EVENT;
+      queryDesc.MiscFlags = 0;
+      HRC(device->CreateQuery(&queryDesc, query.ReleaseAndGetAddressOf()));
+      deviceContext->Begin(query.Get());
       deviceContext->CopyResource(sharedTexture.Get(), texture.Get());
+      deviceContext->End(query.Get());
+      BOOL bResult = FALSE;
+      while (!bResult) {
+        HRESULT hr =
+            deviceContext->GetData(query.Get(), &bResult, sizeof(BOOL), 0);
+        if (SUCCEEDED(hr)) {
+          if (bResult) {
+            break;
+          }
+        }
+      }
       deviceContext->Flush();
       HRC(sharedTexture.As(&resource));
       HANDLE sharedHandle = nullptr;
@@ -321,6 +340,13 @@ bool CreateDevice(int64_t luid) {
 
   if (featureLevel != D3D_FEATURE_LEVEL_11_0) {
     std::cerr << "Direct3D Feature Level 11 unsupported." << std::endl;
+    return false;
+  }
+  D3D11_QUERY_DESC queryDesc;
+  ZeroMemory(&queryDesc, sizeof(queryDesc));
+  queryDesc.Query = D3D11_QUERY_EVENT;
+  queryDesc.MiscFlags = 0;
+  if (FAILED(device->CreateQuery(&queryDesc, query.ReleaseAndGetAddressOf()))) {
     return false;
   }
   return true;
