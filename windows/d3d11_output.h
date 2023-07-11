@@ -36,10 +36,12 @@ private:
   ComPtr<ID3D11Device> dev_ = nullptr;
   ComPtr<ID3D11DeviceContext> ctx_ = nullptr;
   ComPtr<ID3D11Texture2D> tex_ = nullptr;
+  ComPtr<ID3D11Texture2D> tex_buffers_[2] = {nullptr, nullptr};
+  std::atomic<int> current_tex_buffer_index_ = 0;
+  std::atomic<int> tex_occupied_count_ = 0;
   std::unique_ptr<FlutterDesktopGpuSurfaceDescriptor> surface_desc_ = nullptr;
   std::unique_ptr<flutter::TextureVariant> variant_ = nullptr;
   int64_t texture_id_ = 0;
-  std::atomic_bool allowInput_ = true;
   std::atomic_char16_t last_fps_ = 0;
   std::atomic_char16_t this_fps_ = 0;
   std::atomic<std::chrono::steady_clock::time_point> fps_time_point_ =

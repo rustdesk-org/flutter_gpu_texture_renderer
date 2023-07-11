@@ -53,12 +53,11 @@ D3D11Output::~D3D11Output() {
 bool D3D11Output::SetTexture(HANDLE shared_handle) {
   if (!shared_handle)
     return false;
-  if (!allowInput_)
+  if (tex_occupied_count_ >= 2)
     return false;
 
   if (!EnsureTexture(shared_handle))
     return false;
-  allowInput_ = false;
 
   return Present();
 }
@@ -71,6 +70,8 @@ bool D3D11Output::EnsureTexture(HANDLE shared_handle) {
   MS_THROW(resource.As(&tex_));
   D3D11_TEXTURE2D_DESC desc;
   tex_->GetDesc(&desc);
+  tex_buffers_[current_tex_buffer_index_++ % 2] = tex_;
+  tex_occupied_count_++;
 
   surface_desc_->struct_size = sizeof(FlutterDesktopGpuSurfaceDescriptor);
   surface_desc_->handle = shared_handle;
@@ -80,8 +81,8 @@ bool D3D11Output::EnsureTexture(HANDLE shared_handle) {
   surface_desc_->release_context = this;
   surface_desc_->release_callback = [](void *release_context) {
     D3D11Output *self = (D3D11Output *)release_context;
-    self->allowInput_ = true;
     self->SetFPS();
+    self->tex_occupied_count_--;
   };
 
   return true;
