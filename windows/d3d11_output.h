@@ -23,6 +23,7 @@ public:
   ID3D11Device *Device() { return dev_.Get(); }
   bool SetTexture(HANDLE shared_handle);
   bool Present();
+  int16_t Fps() { return last_fps_; }
 
 private:
   D3D11Output() = delete;

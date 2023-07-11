@@ -119,11 +119,22 @@ class _VideoOutputState extends State<VideoOutput> {
   FlutterGpuTextureRenderer get plugin => widget.plugin;
   NativeLibrary get pluginlib => widget.pluginlib;
   NativeLibrary get duplib => widget.duplib;
+  int _fps = 0;
+  Timer? timer;
 
   @override
   void initState() {
     super.initState();
     initPlatformState();
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
+    timer?.cancel();
+    if (_textureId != null) {
+      widget.plugin.unregisterTexture(_textureId!);
+    }
   }
 
   Future<void> initPlatformState() async {
@@ -139,6 +150,12 @@ class _VideoOutputState extends State<VideoOutput> {
           // duplib.StartDuplicateThread(Pointer.fromAddress(device));
           duplib.StartDuplicateThread(luid);
           duplib.AddOutput(Pointer.fromAddress(output));
+          timer = Timer.periodic(const Duration(seconds: 1), (timer) async {
+            int? fps = await widget.plugin.fps(_textureId!);
+            setState(() {
+              _fps = fps ?? 0;
+            });
+          });
         }
       }
     } on PlatformException {
@@ -150,7 +167,18 @@ class _VideoOutputState extends State<VideoOutput> {
   Widget build(BuildContext context) {
     return Container(
       child: _textureId != null
-          ? Texture(textureId: _textureId!)
+          ? Stack(
+              children: [
+                Texture(textureId: _textureId!),
+                Positioned(
+                    top: 0,
+                    right: 0,
+                    child: Text(
+                      "FPS: $_fps",
+                      style: const TextStyle(fontSize: 30, color: Colors.green),
+                    ))
+              ],
+            )
           : const Text("_textureId is null"),
     );
   }
