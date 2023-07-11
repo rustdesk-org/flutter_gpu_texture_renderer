@@ -74,7 +74,6 @@ bool D3D11Output::EnsureTexture(HANDLE shared_handle) {
 
   surface_desc_->struct_size = sizeof(FlutterDesktopGpuSurfaceDescriptor);
   surface_desc_->handle = shared_handle;
-  ;
   surface_desc_->width = surface_desc_->visible_width = desc.Width;
   surface_desc_->height = surface_desc_->visible_height = desc.Height;
   surface_desc_->format = kFlutterDesktopPixelFormatBGRA8888;
