@@ -65,7 +65,7 @@ bool D3D11Output::SetTexture(HANDLE shared_handle) {
 bool D3D11Output::EnsureTexture(HANDLE shared_handle) {
   ComPtr<IDXGIResource> resource = nullptr;
   MS_THROW(
-      dev_->OpenSharedResource(shared_handle, __uuidof(ID3D10Texture2D),
+      dev_->OpenSharedResource(shared_handle, __uuidof(ID3D11Texture2D),
                                (void **)resource.ReleaseAndGetAddressOf()));
   MS_THROW(resource.As(&tex_));
   D3D11_TEXTURE2D_DESC desc;
