@@ -31,25 +31,14 @@ public:
            desc_.AdapterLuid.LowPart;
   }
 
-  static ID3D11Device *device() {
-    if (!CreateDevice())
-      return nullptr;
-    return dev_.Get();
-  };
-
 private:
   // Called when a method is called on this plugin's channel from Dart.
   void HandleMethodCall(
       const flutter::MethodCall<flutter::EncodableValue> &method_call,
       std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result);
 
-  static bool CreateDevice();
-
 private:
   flutter::PluginRegistrarWindows *registrar_ = nullptr;
-  HWND hwnd_ = nullptr;
-  static ComPtr<IDXGIAdapter> adapter_;
-  static ComPtr<ID3D11Device> dev_;
   std::vector<std::unique_ptr<D3D11Output>> outputs_;
   std::mutex mutex_;
   static DXGI_ADAPTER_DESC desc_;

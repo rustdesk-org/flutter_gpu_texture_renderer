@@ -21,11 +21,8 @@
 
 namespace flutter_gpu_texture_renderer {
 
-D3D11Output::D3D11Output(flutter::TextureRegistrar *texture_registrar,
-                         ID3D11Device *device)
+D3D11Output::D3D11Output(flutter::TextureRegistrar *texture_registrar)
     : texture_registrar_(texture_registrar) {
-  dev_ = device;
-  dev_->GetImmediateContext(ctx_.ReleaseAndGetAddressOf());
   surface_desc_ = std::make_unique<FlutterDesktopGpuSurfaceDescriptor>();
 
   variant_ =
@@ -49,25 +46,29 @@ D3D11Output::~D3D11Output() {
 #endif
 }
 
-bool D3D11Output::SetTexture(HANDLE shared_handle) {
-  if (!shared_handle)
+bool D3D11Output::SetTexture(void *texture) {
+  if (!texture)
     return false;
   if (tex_occupied_count_ >= 2)
     return false;
 
-  if (!EnsureTexture(shared_handle))
+  if (!EnsureTexture((ID3D11Texture2D *)texture))
     return false;
 
   return Present();
 }
 
-bool D3D11Output::EnsureTexture(HANDLE shared_handle) {
+bool D3D11Output::EnsureTexture(ID3D11Texture2D *texture) {
+  tex_ = texture;
+  if (!dev_) {
+    tex_->GetDevice(dev_.ReleaseAndGetAddressOf());
+    dev_->GetImmediateContext(ctx_.ReleaseAndGetAddressOf());
+  }
+
   ComPtr<IDXGIResource> resource = nullptr;
-  MS_ENSURE(
-      dev_->OpenSharedResource(shared_handle, __uuidof(ID3D11Texture2D),
-                               (void **)resource.ReleaseAndGetAddressOf()),
-      false);
-  MS_ENSURE(resource.As(&tex_), false);
+  MS_ENSURE(tex_.As(&resource), false);
+  HANDLE shared_handle = nullptr;
+  MS_ENSURE(resource->GetSharedHandle(&shared_handle), false);
   D3D11_TEXTURE2D_DESC desc;
   tex_->GetDesc(&desc);
   tex_buffers_[current_tex_buffer_index_++ % 2] = tex_;

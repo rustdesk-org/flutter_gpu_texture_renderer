@@ -289,11 +289,9 @@ void duplicateThread() {
               .count();
       // std::cout << "copy elapsed:" << elapsed << " ms" << std::endl;
       HRC(sharedTexture.As(&resource));
-      HANDLE sharedHandle = nullptr;
-      HRC(resource->GetSharedHandle(&sharedHandle));
       std::lock_guard<std::mutex> lock(mutex);
       for (auto output : outputs) {
-        duplicateCallback(output, sharedHandle);
+        duplicateCallback(output, sharedTexture.Get());
       }
     }
     // else {

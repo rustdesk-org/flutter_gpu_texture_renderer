@@ -16,12 +16,11 @@ namespace flutter_gpu_texture_renderer {
 
 class D3D11Output {
 public:
-  D3D11Output(flutter::TextureRegistrar *texture_registrar,
-              ID3D11Device *device);
+  D3D11Output(flutter::TextureRegistrar *texture_registrar);
   virtual ~D3D11Output();
   int64_t TextureId() { return texture_id_; }
   ID3D11Device *Device() { return dev_.Get(); }
-  bool SetTexture(HANDLE shared_handle);
+  bool SetTexture(void *texture);
   bool Present();
   int16_t Fps() { return last_fps_; }
 
@@ -29,7 +28,7 @@ private:
   D3D11Output() = delete;
   D3D11Output(const D3D11Output &) = delete;
   D3D11Output &operator=(const D3D11Output &) = delete;
-  bool EnsureTexture(HANDLE shared_handle);
+  bool EnsureTexture(ID3D11Texture2D *texture);
   void SetFPS();
 
 private:
