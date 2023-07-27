@@ -11,6 +11,8 @@
 namespace flutter_gpu_texture_renderer {
 
 DXGI_ADAPTER_DESC FlutterGpuTextureRendererPlugin::desc_ = {0};
+ComPtr<IDXGIAdapter> FlutterGpuTextureRendererPlugin::adapter_ = nullptr;
+ComPtr<ID3D11Device> FlutterGpuTextureRendererPlugin::dev_ = nullptr;
 
 // static
 void FlutterGpuTextureRendererPlugin::RegisterWithRegistrar(
@@ -29,9 +31,11 @@ FlutterGpuTextureRendererPlugin::FlutterGpuTextureRendererPlugin(
   channel->SetMethodCallHandler([&](const auto &call, auto result) {
     this->HandleMethodCall(call, std::move(result));
   });
-  adapter_ = registrar_->GetView()->GetGraphicsAdapter();
-  if (SUCCEEDED(adapter_->GetDesc(&desc_))) {
-    std::wcout << "Graphics adapter: " << desc_.Description << std::endl;
+  if (!adapter_) {
+    adapter_ = registrar_->GetView()->GetGraphicsAdapter();
+    if (SUCCEEDED(adapter_->GetDesc(&desc_))) {
+      std::wcout << "Graphics adapter: " << desc_.Description << std::endl;
+    }
   }
 }
 
