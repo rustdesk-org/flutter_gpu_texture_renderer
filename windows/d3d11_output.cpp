@@ -4,7 +4,6 @@
 #pragma comment(lib, "d3d11.lib")
 
 #define MS_ENSURE(f, ...) MS_CHECK(f, return __VA_ARGS__;)
-#define MS_THROW(f, ...) MS_CHECK(f, throw std::runtime_error(#f);)
 #define MS_WARN(f) MS_CHECK(f)
 #define MS_CHECK(f, ...)                                                       \
   do {                                                                         \
@@ -64,10 +63,11 @@ bool D3D11Output::SetTexture(HANDLE shared_handle) {
 
 bool D3D11Output::EnsureTexture(HANDLE shared_handle) {
   ComPtr<IDXGIResource> resource = nullptr;
-  MS_THROW(
+  MS_ENSURE(
       dev_->OpenSharedResource(shared_handle, __uuidof(ID3D11Texture2D),
-                               (void **)resource.ReleaseAndGetAddressOf()));
-  MS_THROW(resource.As(&tex_));
+                               (void **)resource.ReleaseAndGetAddressOf()),
+      false);
+  MS_ENSURE(resource.As(&tex_), false);
   D3D11_TEXTURE2D_DESC desc;
   tex_->GetDesc(&desc);
   tex_buffers_[current_tex_buffer_index_++ % 2] = tex_;
