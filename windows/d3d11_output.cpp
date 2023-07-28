@@ -36,14 +36,6 @@ D3D11Output::D3D11Output(flutter::TextureRegistrar *texture_registrar)
 D3D11Output::~D3D11Output() {
   if (texture_id_)
     texture_registrar_->UnregisterTexture(texture_id_);
-#ifdef _DEBUG
-  if (dev_) {
-    ComPtr<ID3D11Debug> debug = nullptr;
-    if (SUCCEEDED(dev_.As(&debug))) {
-      debug->ReportLiveDeviceObjects(D3D11_RLDO_DETAIL);
-    }
-  }
-#endif
 }
 
 bool D3D11Output::SetTexture(void *texture) {
@@ -60,11 +52,6 @@ bool D3D11Output::SetTexture(void *texture) {
 
 bool D3D11Output::EnsureTexture(ID3D11Texture2D *texture) {
   tex_ = texture;
-  if (!dev_) {
-    tex_->GetDevice(dev_.ReleaseAndGetAddressOf());
-    dev_->GetImmediateContext(ctx_.ReleaseAndGetAddressOf());
-  }
-
   ComPtr<IDXGIResource> resource = nullptr;
   MS_ENSURE(tex_.As(&resource), false);
   HANDLE shared_handle = nullptr;

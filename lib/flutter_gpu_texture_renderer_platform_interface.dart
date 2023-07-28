@@ -36,10 +36,6 @@ abstract class FlutterGpuTextureRendererPlatform extends PlatformInterface {
     throw UnimplementedError('output() has not been implemented.');
   }
 
-  Future<int?> device(int id) {
-    throw UnimplementedError('device() has not been implemented.');
-  }
-
   Future<int?> fps(int id) {
     throw UnimplementedError('fps() has not been implemented.');
   }

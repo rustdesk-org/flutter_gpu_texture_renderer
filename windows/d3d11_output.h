@@ -19,7 +19,6 @@ public:
   D3D11Output(flutter::TextureRegistrar *texture_registrar);
   virtual ~D3D11Output();
   int64_t TextureId() { return texture_id_; }
-  ID3D11Device *Device() { return dev_.Get(); }
   bool SetTexture(void *texture);
   bool Present();
   int16_t Fps() { return last_fps_; }
@@ -33,8 +32,6 @@ private:
 
 private:
   flutter::TextureRegistrar *texture_registrar_ = nullptr;
-  ComPtr<ID3D11Device> dev_ = nullptr;
-  ComPtr<ID3D11DeviceContext> ctx_ = nullptr;
   ComPtr<ID3D11Texture2D> tex_ = nullptr;
   ComPtr<ID3D11Texture2D> tex_buffers_[2] = {nullptr, nullptr};
   std::atomic<int> current_tex_buffer_index_ = 0;

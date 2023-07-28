@@ -13,10 +13,6 @@ class FlutterGpuTextureRenderer {
     return FlutterGpuTextureRendererPlatform.instance.output(id);
   }
 
-  Future<int?> device(int id) {
-    return FlutterGpuTextureRendererPlatform.instance.device(id);
-  }
-
   Future<int?> fps(int id) {
     return FlutterGpuTextureRendererPlatform.instance.fps(id);
   }

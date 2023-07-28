@@ -62,17 +62,6 @@ void FlutterGpuTextureRendererPlugin::HandleMethodCall(
                          });
       outputs_.erase(new_end, outputs_.end());
       return result->Success();
-    } else if (method_call.method_name().compare("device") == 0) {
-      auto args = std::get<flutter::EncodableMap>(*method_call.arguments());
-      auto id = std::get<int64_t>(args.at(flutter::EncodableValue("id")));
-      auto it = std::find_if(outputs_.begin(), outputs_.end(),
-                             [id](const std::unique_ptr<D3D11Output> &output) {
-                               return output->TextureId() == id;
-                             });
-      if (it != outputs_.end()) {
-        return result->Success(
-            flutter::EncodableValue((int64_t)(*it)->Device()));
-      }
     } else if (method_call.method_name().compare("output") == 0) {
       auto args = std::get<flutter::EncodableMap>(*method_call.arguments());
       auto id = std::get<int64_t>(args.at(flutter::EncodableValue("id")));

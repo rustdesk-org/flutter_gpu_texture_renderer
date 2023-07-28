@@ -27,11 +27,6 @@ class MethodChannelFlutterGpuTextureRenderer
   }
 
   @override
-  Future<int?> device(int id) async {
-    return await methodChannel.invokeMethod<int?>('device', {"id": id});
-  }
-
-  @override
   Future<int?> fps(int id) async {
     return await methodChannel.invokeMethod<int?>('fps', {"id": id});
   }
