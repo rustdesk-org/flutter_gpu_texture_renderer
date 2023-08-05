@@ -7,6 +7,7 @@
 #include <flutter/method_channel.h>
 #include <flutter/plugin_registrar_windows.h>
 #include <memory>
+#include <mutex>
 #include <thread>
 #include <wrl/client.h>
 
@@ -34,9 +35,11 @@ private:
   flutter::TextureRegistrar *texture_registrar_ = nullptr;
   ComPtr<ID3D11Texture2D> tex_ = nullptr;
   ComPtr<ID3D11Texture2D> tex_buffers_[2] = {nullptr, nullptr};
-  std::atomic<int> current_tex_buffer_index_ = 0;
-  std::atomic<int> tex_occupied_count_ = 0;
-  std::unique_ptr<FlutterDesktopGpuSurfaceDescriptor> surface_desc_ = nullptr;
+  std::unique_ptr<FlutterDesktopGpuSurfaceDescriptor> surface_desc_[2] = {
+      nullptr, nullptr};
+  int free_ = 0;
+  int busy_ = 0;
+  std::mutex mutex_;
   std::unique_ptr<flutter::TextureVariant> variant_ = nullptr;
   int64_t texture_id_ = 0;
   std::atomic_char16_t last_fps_ = 0;

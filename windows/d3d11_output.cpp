@@ -23,12 +23,17 @@ namespace flutter_gpu_texture_renderer {
 
 D3D11Output::D3D11Output(flutter::TextureRegistrar *texture_registrar)
     : texture_registrar_(texture_registrar) {
-  surface_desc_ = std::make_unique<FlutterDesktopGpuSurfaceDescriptor>();
+  for (int i = 0; i < 2; i++) {
+    surface_desc_[i] = std::make_unique<FlutterDesktopGpuSurfaceDescriptor>();
+  }
 
-  variant_ =
-      std::make_unique<flutter::TextureVariant>(flutter::GpuSurfaceTexture(
-          kFlutterDesktopGpuSurfaceTypeDxgiSharedHandle,
-          [&](size_t width, size_t height) { return surface_desc_.get(); }));
+  variant_ = std::make_unique<flutter::TextureVariant>(
+      flutter::GpuSurfaceTexture(kFlutterDesktopGpuSurfaceTypeDxgiSharedHandle,
+                                 [&](size_t width, size_t height) {
+                                   std::lock_guard<std::mutex> lock(mutex_);
+                                   busy_ = free_;
+                                   return surface_desc_[busy_].get();
+                                 }));
 
   texture_id_ = texture_registrar_->RegisterTexture(variant_.get());
 }
@@ -41,8 +46,6 @@ D3D11Output::~D3D11Output() {
 bool D3D11Output::SetTexture(void *texture) {
   if (!texture)
     return false;
-  if (tex_occupied_count_ >= 2)
-    return false;
 
   if (!EnsureTexture((ID3D11Texture2D *)texture))
     return false;
@@ -51,6 +54,7 @@ bool D3D11Output::SetTexture(void *texture) {
 }
 
 bool D3D11Output::EnsureTexture(ID3D11Texture2D *texture) {
+  std::lock_guard<std::mutex> lock(mutex_);
   tex_ = texture;
   ComPtr<IDXGIResource> resource = nullptr;
   MS_ENSURE(tex_.As(&resource), false);
@@ -58,19 +62,21 @@ bool D3D11Output::EnsureTexture(ID3D11Texture2D *texture) {
   MS_ENSURE(resource->GetSharedHandle(&shared_handle), false);
   D3D11_TEXTURE2D_DESC desc;
   tex_->GetDesc(&desc);
-  tex_buffers_[current_tex_buffer_index_++ % 2] = tex_;
-  tex_occupied_count_++;
+  free_ = (busy_ + 1) % 2;
+  tex_buffers_[free_] = tex_;
 
-  surface_desc_->struct_size = sizeof(FlutterDesktopGpuSurfaceDescriptor);
-  surface_desc_->handle = shared_handle;
-  surface_desc_->width = surface_desc_->visible_width = desc.Width;
-  surface_desc_->height = surface_desc_->visible_height = desc.Height;
-  surface_desc_->format = kFlutterDesktopPixelFormatBGRA8888;
-  surface_desc_->release_context = this;
-  surface_desc_->release_callback = [](void *release_context) {
+  surface_desc_[free_]->struct_size =
+      sizeof(FlutterDesktopGpuSurfaceDescriptor);
+  surface_desc_[free_]->handle = shared_handle;
+  surface_desc_[free_]->width = surface_desc_[free_]->visible_width =
+      desc.Width;
+  surface_desc_[free_]->height = surface_desc_[free_]->visible_height =
+      desc.Height;
+  surface_desc_[free_]->format = kFlutterDesktopPixelFormatBGRA8888;
+  surface_desc_[free_]->release_context = this;
+  surface_desc_[free_]->release_callback = [](void *release_context) {
     D3D11Output *self = (D3D11Output *)release_context;
     self->SetFPS();
-    self->tex_occupied_count_--;
   };
 
   return true;
