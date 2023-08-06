@@ -17,11 +17,11 @@ void FlutterGpuTextureRendererPluginCApiRegisterWithRegistrar(
 using flutter_gpu_texture_renderer::D3D11Output;
 
 void FlutterGpuTextureRendererPluginCApiSetTexture(void *output,
-                                                   void *shared_handle) {
-  if (!output || !shared_handle)
+                                                   void *texture) {
+  if (!output || !texture)
     return;
   D3D11Output *d3d11Output = (D3D11Output *)(output);
-  d3d11Output->SetTexture(shared_handle);
+  d3d11Output->SetTexture(texture);
 }
 
 int64_t FlutterGpuTextureRendererPluginCApiGetAdapterLuid() {
