@@ -121,6 +121,7 @@ class _VideoOutputState extends State<VideoOutput> {
   NativeLibrary get duplib => widget.duplib;
   int _fps = 0;
   Timer? timer;
+  int? output;
 
   @override
   void initState() {
@@ -130,8 +131,12 @@ class _VideoOutputState extends State<VideoOutput> {
 
   @override
   void dispose() {
+    debugPrint("dispose");
     super.dispose();
     timer?.cancel();
+    if (output != null) {
+      widget.duplib.RemoveOutput(Pointer.fromAddress(output!));
+    }
     if (_textureId != null) {
       widget.plugin.unregisterTexture(_textureId!);
     }
@@ -143,16 +148,20 @@ class _VideoOutputState extends State<VideoOutput> {
       if (_textureId != null) {
         final luid =
             pluginlib.FlutterGpuTextureRendererPluginCApiGetAdapterLuid();
-        final output = await plugin.output(_textureId!);
-        setState(() {});
+        output = await plugin.output(_textureId!);
+        if (mounted) {
+          setState(() {});
+        }
         if (output != null) {
           duplib.StartDuplicateThread(luid);
-          duplib.AddOutput(Pointer.fromAddress(output));
+          duplib.AddOutput(Pointer.fromAddress(output!));
           timer = Timer.periodic(const Duration(seconds: 1), (timer) async {
             int? fps = await widget.plugin.fps(_textureId!);
-            setState(() {
-              _fps = fps ?? 0;
-            });
+            if (mounted) {
+              setState(() {
+                _fps = fps ?? 0;
+              });
+            }
           });
         }
       }
