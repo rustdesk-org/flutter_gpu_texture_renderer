@@ -48,6 +48,9 @@ class _MyAppState extends State<MyApp> with WindowListener {
   @override
   Widget build(BuildContext context) {
     bool isSingleItem = _count == 1;
+    final size = MediaQuery.of(context).size;
+    final screenWidth = size.width;
+    final screenHeight = size.height;
     return MaterialApp(
       home: Scaffold(
         appBar: AppBar(
@@ -84,8 +87,8 @@ class _MyAppState extends State<MyApp> with WindowListener {
             (index) => Padding(
               padding: EdgeInsets.all(isSingleItem ? 0 : 5),
               child: SizedBox(
-                width: 2880,
-                height: 1800,
+                width: screenWidth,
+                height: screenHeight,
                 child: VideoOutput(
                     plugin: _flutterGpuTextureRendererPlugin,
                     pluginlib: _pluginLib,
