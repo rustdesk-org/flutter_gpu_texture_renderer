@@ -25,6 +25,9 @@ D3D11Output::D3D11Output(flutter::TextureRegistrar *texture_registrar)
     : texture_registrar_(texture_registrar) {
   for (int i = 0; i < 2; i++) {
     surface_desc_[i] = std::make_unique<FlutterDesktopGpuSurfaceDescriptor>();
+    if (surface_desc_[i].get() == nullptr) {
+      unusable_ = true;
+    }
   }
 
   variant_ = std::make_unique<flutter::TextureVariant>(
@@ -35,7 +38,11 @@ D3D11Output::D3D11Output(flutter::TextureRegistrar *texture_registrar)
                                    return surface_desc_[busy_].get();
                                  }));
 
-  texture_id_ = texture_registrar_->RegisterTexture(variant_.get());
+  if (texture_registrar_) {
+    texture_id_ = texture_registrar_->RegisterTexture(variant_.get());
+  } else {
+    unusable_ = true;
+  }
 }
 
 D3D11Output::~D3D11Output() {
@@ -44,6 +51,9 @@ D3D11Output::~D3D11Output() {
 }
 
 bool D3D11Output::SetTexture(void *texture) {
+  if (unusable_) {
+    return false;
+  }
   if (!texture)
     return false;
 

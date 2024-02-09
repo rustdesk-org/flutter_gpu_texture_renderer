@@ -46,6 +46,7 @@ private:
   std::atomic_char16_t this_fps_ = 0;
   std::atomic<std::chrono::steady_clock::time_point> fps_time_point_ =
       std::chrono::steady_clock::now();
+  bool unusable_ = false;
 };
 
 } // namespace flutter_gpu_texture_renderer

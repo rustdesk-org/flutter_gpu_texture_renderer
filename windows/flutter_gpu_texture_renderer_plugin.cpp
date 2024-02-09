@@ -11,26 +11,44 @@
 namespace flutter_gpu_texture_renderer {
 
 DXGI_ADAPTER_DESC FlutterGpuTextureRendererPlugin::desc_ = {0};
+bool FlutterGpuTextureRendererPlugin::unusable_ = false;
 
 // static
 void FlutterGpuTextureRendererPlugin::RegisterWithRegistrar(
     flutter::PluginRegistrarWindows *registrar) {
-  auto plugin = std::make_unique<FlutterGpuTextureRendererPlugin>(registrar);
-  registrar->AddPlugin(std::move(plugin));
+  if (Check(registrar)) {
+    auto plugin = std::make_unique<FlutterGpuTextureRendererPlugin>(registrar);
+    if (Check(plugin.get())) {
+      registrar->AddPlugin(std::move(plugin));
+    }
+  }
 }
 
 FlutterGpuTextureRendererPlugin::FlutterGpuTextureRendererPlugin(
     flutter::PluginRegistrarWindows *registrar)
     : registrar_(registrar) {
-  auto channel =
-      std::make_unique<flutter::MethodChannel<flutter::EncodableValue>>(
-          registrar->messenger(), "flutter_gpu_texture_renderer",
-          &flutter::StandardMethodCodec::GetInstance());
-  channel->SetMethodCallHandler([&](const auto &call, auto result) {
-    this->HandleMethodCall(call, std::move(result));
-  });
-  if (SUCCEEDED(registrar_->GetView()->GetGraphicsAdapter()->GetDesc(&desc_))) {
-    std::wcout << "Graphics adapter: " << desc_.Description << std::endl;
+  if (Check(registrar)) {
+    auto channel =
+        std::make_unique<flutter::MethodChannel<flutter::EncodableValue>>(
+            registrar->messenger(), "flutter_gpu_texture_renderer",
+            &flutter::StandardMethodCodec::GetInstance());
+    if (Check(channel.get())) {
+      channel->SetMethodCallHandler([&](const auto &call, auto result) {
+        this->HandleMethodCall(call, std::move(result));
+      });
+      auto view = registrar_->GetView();
+      if (Check(view)) {
+        auto adapter = view->GetGraphicsAdapter();
+        if (Check(adapter)) {
+          if (SUCCEEDED(adapter->GetDesc(&desc_))) {
+            std::wcout << "Graphics adapter: " << desc_.Description
+                       << std::endl;
+          } else {
+            unusable_ = true;
+          }
+        }
+      }
+    }
   }
 }
 
@@ -49,6 +67,9 @@ void FlutterGpuTextureRendererPlugin::HandleMethodCall(
     if (method_call.method_name().compare("registerTexture") == 0) {
       auto output =
           std::make_unique<D3D11Output>(registrar_->texture_registrar());
+      if (!Check(output.get())) {
+        return result->Error("make_unique", "Failed to create output.");
+      }
       auto id = output->TextureId();
       outputs_.push_back(std::move(output));
       return result->Success(flutter::EncodableValue(id));

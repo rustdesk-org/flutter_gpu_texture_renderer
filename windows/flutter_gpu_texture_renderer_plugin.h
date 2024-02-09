@@ -27,8 +27,23 @@ public:
   operator=(const FlutterGpuTextureRendererPlugin &) = delete;
 
   static int64_t GetAdapterLuid() {
+    if (unusable_)
+      return 0;
     return (int64_t(desc_.AdapterLuid.HighPart) << 32) |
            desc_.AdapterLuid.LowPart;
+  }
+
+  // https://github.com/rustdesk/rustdesk/commit/89150317e14500170f30570c873b7efa8cb826ad#commitcomment-138449157
+  static bool Check(void *ptr) {
+    if (unusable_)
+      return false;
+    if (ptr == nullptr) {
+      unusable_ = true;
+      std::cout << "set plugin flutter_gpu_texture_renderer unusable"
+                << std::endl;
+      return false;
+    }
+    return true;
   }
 
 private:
@@ -42,6 +57,7 @@ private:
   std::vector<std::unique_ptr<D3D11Output>> outputs_;
   std::mutex mutex_;
   static DXGI_ADAPTER_DESC desc_;
+  static bool unusable_;
 };
 
 } // namespace flutter_gpu_texture_renderer
