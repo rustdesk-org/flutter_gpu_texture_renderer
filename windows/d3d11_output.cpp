@@ -23,19 +23,17 @@ namespace flutter_gpu_texture_renderer {
 
 D3D11Output::D3D11Output(flutter::TextureRegistrar *texture_registrar)
     : texture_registrar_(texture_registrar) {
-  for (int i = 0; i < 2; i++) {
-    surface_desc_[i] = std::make_unique<FlutterDesktopGpuSurfaceDescriptor>();
-    if (surface_desc_[i].get() == nullptr) {
-      unusable_ = true;
-    }
+  surface_desc_ = std::make_unique<FlutterDesktopGpuSurfaceDescriptor>();
+  if (surface_desc_.get() == nullptr) {
+    unusable_ = true;
   }
 
   variant_ = std::make_unique<flutter::TextureVariant>(
       flutter::GpuSurfaceTexture(kFlutterDesktopGpuSurfaceTypeDxgiSharedHandle,
                                  [&](size_t width, size_t height) {
                                    std::lock_guard<std::mutex> lock(mutex_);
-                                   busy_ = free_;
-                                   return surface_desc_[busy_].get();
+                                   rendering_ = true;
+                                   return surface_desc_.get();
                                  }));
 
   if (texture_registrar_) {
@@ -63,31 +61,63 @@ bool D3D11Output::SetTexture(void *texture) {
   return Present();
 }
 
+// https://api.flutter.dev/linux-embedder/flutter__texture__registrar_8h_source.html
 bool D3D11Output::EnsureTexture(ID3D11Texture2D *texture) {
   std::lock_guard<std::mutex> lock(mutex_);
+  if (rendering_) {
+    std::cout << __FILE__ << " rendering: " << rendering_ << std::endl;
+  }
   tex_ = texture;
-  ComPtr<IDXGIResource> resource = nullptr;
-  MS_ENSURE(tex_.As(&resource), false);
-  HANDLE shared_handle = nullptr;
-  MS_ENSURE(resource->GetSharedHandle(&shared_handle), false);
   D3D11_TEXTURE2D_DESC desc;
   tex_->GetDesc(&desc);
-  free_ = (busy_ + 1) % 2;
-  tex_buffers_[free_] = tex_;
+  ComPtr<ID3D11Device> dev = nullptr;
+  tex_->GetDevice(dev.ReleaseAndGetAddressOf());
+  if (!dev) {
+    std::cout << __FILE__ << " GetDevice failed" << std::endl;
+    return false;
+  }
+  if (dev_ != dev) {
+    fail_counter_ = 0;
+    if (dev_) {
+      std::cout << __FILE__ << " d3d11 device changed" << std::endl;
+    }
+    dev_ = dev;
+    dev_->GetImmediateContext(ctx_.ReleaseAndGetAddressOf());
+    desc_ready_ = false;
+  }
+  if (!desc_ready_ || surface_desc_->width != desc.Width ||
+      surface_desc_->height != desc.Height) {
+    if (fail_counter_ > 10) {
+      std::cout << __FILE__ << " fail_counter_ > 10" << std::endl;
+      return false;
+    }
+    fail_counter_++;
+    if (surface_desc_->width != 0)
+      std::cout << __FILE__ << " reset desc" << std::endl;
+    MS_ENSURE(dev_->CreateTexture2D(&desc, nullptr,
+                                    tex_buffers_.ReleaseAndGetAddressOf()),
+              false);
+    ComPtr<IDXGIResource> resource = nullptr;
+    MS_ENSURE(tex_buffers_.As(&resource), false);
+    HANDLE shared_handle = nullptr;
+    MS_ENSURE(resource->GetSharedHandle(&shared_handle), false);
 
-  surface_desc_[free_]->struct_size =
-      sizeof(FlutterDesktopGpuSurfaceDescriptor);
-  surface_desc_[free_]->handle = shared_handle;
-  surface_desc_[free_]->width = surface_desc_[free_]->visible_width =
-      desc.Width;
-  surface_desc_[free_]->height = surface_desc_[free_]->visible_height =
-      desc.Height;
-  surface_desc_[free_]->format = kFlutterDesktopPixelFormatBGRA8888;
-  surface_desc_[free_]->release_context = this;
-  surface_desc_[free_]->release_callback = [](void *release_context) {
-    D3D11Output *self = (D3D11Output *)release_context;
-    self->SetFPS();
-  };
+    surface_desc_->struct_size = sizeof(FlutterDesktopGpuSurfaceDescriptor);
+    surface_desc_->handle = shared_handle;
+    surface_desc_->width = surface_desc_->visible_width = desc.Width;
+    surface_desc_->height = surface_desc_->visible_height = desc.Height;
+    surface_desc_->format = kFlutterDesktopPixelFormatBGRA8888;
+    surface_desc_->release_context = this;
+    surface_desc_->release_callback = [](void *release_context) {
+      D3D11Output *self = (D3D11Output *)release_context;
+      // self->SetFPS();
+      self->rendering_ = false;
+    };
+    desc_ready_ = true;
+  }
+  ctx_->CopyResource(tex_buffers_.Get(), tex_.Get());
+  ctx_->Flush();
+  fail_counter_ = 0;
 
   return true;
 }
