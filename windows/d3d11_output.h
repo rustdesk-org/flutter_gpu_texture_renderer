@@ -34,11 +34,10 @@ private:
 private:
   flutter::TextureRegistrar *texture_registrar_ = nullptr;
   ComPtr<ID3D11Texture2D> tex_ = nullptr;
-  ComPtr<ID3D11Texture2D> tex_buffers_[2] = {nullptr, nullptr};
-  std::unique_ptr<FlutterDesktopGpuSurfaceDescriptor> surface_desc_[2] = {
-      nullptr, nullptr};
-  int free_ = 0;
-  int busy_ = 0;
+  ComPtr<ID3D11Texture2D> tex_buffers_ = nullptr;
+  ComPtr<ID3D11Device> dev_ = nullptr;
+  ComPtr<ID3D11DeviceContext> ctx_ = nullptr;
+  std::unique_ptr<FlutterDesktopGpuSurfaceDescriptor> surface_desc_ = nullptr;
   std::mutex mutex_;
   std::unique_ptr<flutter::TextureVariant> variant_ = nullptr;
   int64_t texture_id_ = 0;
@@ -47,6 +46,9 @@ private:
   std::atomic<std::chrono::steady_clock::time_point> fps_time_point_ =
       std::chrono::steady_clock::now();
   bool unusable_ = false;
+  bool desc_ready_ = false;
+  size_t fail_counter_ = 0;
+  bool rendering_ = false;
 };
 
 } // namespace flutter_gpu_texture_renderer
