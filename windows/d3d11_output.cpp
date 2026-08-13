@@ -1,5 +1,8 @@
 #include "d3d11_output.h"
 
+#include <shared_mutex>
+#include <unordered_set>
+
 #pragma comment(lib, "dxgi.lib")
 #pragma comment(lib, "d3d11.lib")
 
@@ -21,6 +24,14 @@
 
 namespace flutter_gpu_texture_renderer {
 
+namespace {
+// Membership is checked under a shared lock on every push, so removal
+// (unique lock, in ~D3D11Output) drains in-flight pushes before the object's
+// memory goes away.
+std::shared_mutex g_live_mutex;
+std::unordered_set<void *> g_live_outputs;
+} // namespace
+
 D3D11Output::D3D11Output(flutter::TextureRegistrar *texture_registrar)
     : texture_registrar_(texture_registrar) {
   surface_desc_ = std::make_unique<FlutterDesktopGpuSurfaceDescriptor>();
@@ -32,7 +43,12 @@ D3D11Output::D3D11Output(flutter::TextureRegistrar *texture_registrar)
       flutter::GpuSurfaceTexture(kFlutterDesktopGpuSurfaceTypeDxgiSharedHandle,
                                  [&](size_t width, size_t height) {
                                    std::lock_guard<std::mutex> lock(mutex_);
-                                   rendering_ = true;
+                                   // A null-handle descriptor makes the engine
+                                   // bail before the release callback; setting
+                                   // the flag then would leave it stuck true.
+                                   if (desc_ready_) {
+                                     rendering_ = true;
+                                   }
                                    return surface_desc_.get();
                                  }));
 
@@ -41,11 +57,18 @@ D3D11Output::D3D11Output(flutter::TextureRegistrar *texture_registrar)
   } else {
     unusable_ = true;
   }
+
+  {
+    std::unique_lock<std::shared_mutex> lock(g_live_mutex);
+    g_live_outputs.insert(this);
+  }
 }
 
 D3D11Output::~D3D11Output() {
-  if (texture_id_)
-    texture_registrar_->UnregisterTexture(texture_id_);
+  // Unregistration happens in the plugin's unregisterTexture; here only make
+  // sure no push is still running on this object and no later push reaches it.
+  std::unique_lock<std::shared_mutex> lock(g_live_mutex);
+  g_live_outputs.erase(this);
 }
 
 bool D3D11Output::SetTexture(void *texture) {
@@ -64,6 +87,13 @@ bool D3D11Output::SetTexture(void *texture) {
 // https://api.flutter.dev/linux-embedder/flutter__texture__registrar_8h_source.html
 bool D3D11Output::EnsureTexture(ID3D11Texture2D *texture) {
   std::lock_guard<std::mutex> lock(mutex_);
+  // The raster thread is reading tex_buffers_ through the shared handle;
+  // overwriting it mid-read tears. Frames can be sparse (damage-driven), so
+  // wait briefly instead of dropping; on timeout push through (transient tear
+  // beats a stale frame, and the release callback may be lost on error paths).
+  for (int i = 0; rendering_ && i < 8; i++) {
+    std::this_thread::sleep_for(std::chrono::microseconds(500));
+  }
   if (rendering_) {
     std::cout << __FILE__ << " rendering: " << rendering_ << std::endl;
   }
@@ -111,6 +141,7 @@ bool D3D11Output::EnsureTexture(ID3D11Texture2D *texture) {
     surface_desc_->release_callback = [](void *release_context) {
       D3D11Output *self = (D3D11Output *)release_context;
       // self->SetFPS();
+      self->consumed_.fetch_add(1, std::memory_order_relaxed);
       self->rendering_ = false;
     };
     desc_ready_ = true;
@@ -138,6 +169,20 @@ void D3D11Output::SetFPS() {
     this_fps_ = 0;
     // std::cout << "fps:" << (int)last_fps_.load() << std::endl;
   }
+}
+
+bool D3D11OutputSetTexture(void *output, void *texture) {
+  std::shared_lock<std::shared_mutex> lock(g_live_mutex);
+  if (g_live_outputs.find(output) == g_live_outputs.end())
+    return false;
+  return static_cast<D3D11Output *>(output)->SetTexture(texture);
+}
+
+uint64_t D3D11OutputConsumed(void *output) {
+  std::shared_lock<std::shared_mutex> lock(g_live_mutex);
+  if (g_live_outputs.find(output) == g_live_outputs.end())
+    return 0;
+  return static_cast<D3D11Output *>(output)->Consumed();
 }
 
 } // namespace flutter_gpu_texture_renderer

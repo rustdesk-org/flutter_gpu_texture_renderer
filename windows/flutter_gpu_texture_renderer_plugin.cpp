@@ -76,12 +76,19 @@ void FlutterGpuTextureRendererPlugin::HandleMethodCall(
     } else if (method_call.method_name().compare("unregisterTexture") == 0) {
       auto args = std::get<flutter::EncodableMap>(*method_call.arguments());
       auto id = args.at(flutter::EncodableValue("id")).LongValue();
-      auto new_end =
-          std::remove_if(outputs_.begin(), outputs_.end(),
-                         [id](const std::unique_ptr<D3D11Output> &output) {
-                           return output->TextureId() == id;
-                         });
-      outputs_.erase(new_end, outputs_.end());
+      auto it = std::find_if(outputs_.begin(), outputs_.end(),
+                             [id](const std::unique_ptr<D3D11Output> &output) {
+                               return output->TextureId() == id;
+                             });
+      if (it != outputs_.end()) {
+        // UnregisterTexture only posts the engine-side removal to the raster
+        // thread; deleting here would race an in-flight surface fetch or
+        // release callback. Keep the object alive until the engine is done.
+        std::shared_ptr<D3D11Output> output = std::move(*it);
+        outputs_.erase(it);
+        registrar_->texture_registrar()->UnregisterTexture(output->TextureId(),
+                                                           [output] {});
+      }
       return result->Success();
     } else if (method_call.method_name().compare("output") == 0) {
       auto args = std::get<flutter::EncodableMap>(*method_call.arguments());

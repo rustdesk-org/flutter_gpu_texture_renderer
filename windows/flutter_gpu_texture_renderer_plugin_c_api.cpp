@@ -14,14 +14,19 @@ void FlutterGpuTextureRendererPluginCApiRegisterWithRegistrar(
               ->GetRegistrar<flutter::PluginRegistrarWindows>(registrar));
 }
 
-using flutter_gpu_texture_renderer::D3D11Output;
-
 void FlutterGpuTextureRendererPluginCApiSetTexture(void *output,
                                                    void *texture) {
   if (!output || !texture)
     return;
-  D3D11Output *d3d11Output = (D3D11Output *)(output);
-  d3d11Output->SetTexture(texture);
+  // The pointer may already have been unregistered by the Dart side; the push
+  // validates it against the live-object set instead of dereferencing.
+  flutter_gpu_texture_renderer::D3D11OutputSetTexture(output, texture);
+}
+
+uint64_t FlutterGpuTextureRendererPluginCApiGetConsumed(void *output) {
+  if (!output)
+    return 0;
+  return flutter_gpu_texture_renderer::D3D11OutputConsumed(output);
 }
 
 int64_t FlutterGpuTextureRendererPluginCApiGetAdapterLuid() {

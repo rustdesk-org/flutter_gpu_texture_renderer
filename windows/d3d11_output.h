@@ -2,6 +2,7 @@
 #define FLUTTER_PLUGIN_D3D11_OUTPUT_PLUGIN_H_
 
 #include <atomic>
+#include <chrono>
 #include <d3d11.h>
 #include <dxgi.h>
 #include <flutter/method_channel.h>
@@ -23,6 +24,7 @@ public:
   bool SetTexture(void *texture);
   bool Present();
   int16_t Fps() { return last_fps_; }
+  uint64_t Consumed() { return consumed_.load(std::memory_order_relaxed); }
 
 private:
   D3D11Output() = delete;
@@ -45,11 +47,18 @@ private:
   std::atomic_char16_t this_fps_ = 0;
   std::atomic<std::chrono::steady_clock::time_point> fps_time_point_ =
       std::chrono::steady_clock::now();
+  std::atomic<uint64_t> consumed_ = 0;
   bool unusable_ = false;
   bool desc_ready_ = false;
   size_t fail_counter_ = 0;
-  bool rendering_ = false;
+  std::atomic<bool> rendering_ = false;
 };
+
+// Rust's decode thread pushes textures through a raw D3D11Output pointer with
+// no lifetime contract; these validate the pointer against the set of live
+// objects so a concurrent unregister cannot free memory out from under a push.
+bool D3D11OutputSetTexture(void *output, void *texture);
+uint64_t D3D11OutputConsumed(void *output);
 
 } // namespace flutter_gpu_texture_renderer
 
