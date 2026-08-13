@@ -21,9 +21,9 @@ FLUTTER_PLUGIN_EXPORT void FlutterGpuTextureRendererPluginCApiSetTexture(void *o
 
 FLUTTER_PLUGIN_EXPORT int64_t FlutterGpuTextureRendererPluginCApiGetAdapterLuid();
 
-// Number of frames the Flutter engine has actually consumed from this
-// output. 0 if the output is unknown/unregistered. Lets the pushing side
-// detect an output that renders nothing and fall back to software rendering.
+// Frames for which the engine fetched this output's surface descriptor; an
+// EGL bind failure still advances it, so 0 means "never composited", not
+// "rendered correctly". Also 0 if the output is unknown/unregistered.
 FLUTTER_PLUGIN_EXPORT uint64_t FlutterGpuTextureRendererPluginCApiGetConsumed(void *output);
 
 #if defined(__cplusplus)

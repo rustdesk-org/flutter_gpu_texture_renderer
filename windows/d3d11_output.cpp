@@ -43,7 +43,12 @@ D3D11Output::D3D11Output(flutter::TextureRegistrar *texture_registrar)
       flutter::GpuSurfaceTexture(kFlutterDesktopGpuSurfaceTypeDxgiSharedHandle,
                                  [&](size_t width, size_t height) {
                                    std::lock_guard<std::mutex> lock(mutex_);
-                                   rendering_ = true;
+                                   // A null-handle descriptor makes the engine
+                                   // bail before the release callback; setting
+                                   // the flag then would leave it stuck true.
+                                   if (desc_ready_) {
+                                     rendering_ = true;
+                                   }
                                    return surface_desc_.get();
                                  }));
 
